@@ -10,23 +10,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy project files
 COPY . /app
 
-# Check if database exists, if not, create a minimal one for testing
-RUN if [ ! -f app/arabic_dict.db ]; then \
-        echo "Database file not found, creating minimal test database..."; \
-        python3 -c "import sqlite3; conn = sqlite3.connect('app/arabic_dict.db'); conn.execute('CREATE TABLE entries (id INTEGER PRIMARY KEY, lemma TEXT, pos TEXT)'); conn.execute('INSERT INTO entries (lemma, pos) VALUES (\"test\", \"noun\")'); conn.commit(); conn.close()"; \
-    else \
-        echo "Database file found, size:"; \
-        ls -lh app/arabic_dict.db; \
-    fi
+# Debug: List files to see what's actually copied
+RUN echo "=== FILES IN CONTAINER ===" && \
+    ls -la /app && \
+    echo "=== Python files ===" && \
+    find /app -name "*.py" | head -10
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir uvicorn
 
+# Test that our standalone app can be imported
+RUN python3 -c "from minimal_standalone import app; print('✅ App imports successfully')"
+
 # Expose port (use Railway's $PORT environment variable)
 ENV PORT=8000
 EXPOSE $PORT
 
-# Use Railway's PORT environment variable
-CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
+# Default CMD (Railway will override this with railway.json startCommand)
+CMD ["python3", "-c", "import uvicorn; from minimal_standalone import app; uvicorn.run(app, host='0.0.0.0', port=8000)"]
