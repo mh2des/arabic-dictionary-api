@@ -7,13 +7,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy project files
-COPY . /app
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir uvicorn
+# Copy all app files including our deployment system
+COPY . /app/
+
+# Make sure the new deployment system is executable
+RUN chmod +x /app/deploy_real_database.py
+
+# Create app directory structure
+RUN mkdir -p /app/app
 
 # Expose port
 ENV PORT=8000

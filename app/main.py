@@ -105,9 +105,35 @@ def get_db_connection() -> sqlite3.Connection:
                 print(f"Database at {db_path} failed: {e}")
                 continue
     
-    # If no valid database found, try to load our REAL database  
-    print("No valid database found, loading REAL comprehensive database...")
+    # REAL DATABASE DEPLOYMENT - NO MORE SAMPLES!
+    print("🚀 DEPLOYING REAL COMPREHENSIVE DATABASE")
     
+    try:
+        # Use our robust database deployment system
+        import sys
+        sys.path.append('/app')
+        sys.path.append('.')
+        
+        from deploy_real_database import download_real_database
+        db_path = download_real_database()
+        
+        if db_path and os.path.exists(db_path):
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM entries")
+            count = cursor.fetchone()[0]
+            
+            if count > 500:  # Minimum acceptable size
+                print(f"✅ REAL DATABASE DEPLOYED: {count} entries")
+                return conn
+            else:
+                print(f"❌ Database too small: {count} entries")
+                conn.close()
+                
+    except Exception as e:
+        print(f"Real database deployment failed: {e}")
+    
+    # If REAL database deployment fails, try compressed database
     try:
         # Try to decompress and use our real database
         import gzip
@@ -124,8 +150,8 @@ def get_db_connection() -> sqlite3.Connection:
             if os.path.exists(compressed_path):
                 print(f"📦 Found compressed database: {compressed_path}")
                 
-                # Decompress to working location
-                target_path = "/app/app/arabic_dict.db"
+                # Decompress to working location with forced new filename
+                target_path = "/app/app/real_arabic_dict.db"
                 os.makedirs(os.path.dirname(target_path), exist_ok=True)
                 
                 with gzip.open(compressed_path, 'rb') as f_in:
@@ -149,8 +175,8 @@ def get_db_connection() -> sqlite3.Connection:
     except Exception as e:
         print(f"Failed to load compressed database: {e}")
     
+    # Try to use the local full database if available
     try:
-        # First try to use the local full database if available
         local_db_path = os.path.join(os.path.dirname(__file__), "arabic_dict.db")
         if os.path.exists(local_db_path):
             file_size = os.path.getsize(local_db_path) / (1024 * 1024)  # MB
@@ -165,12 +191,8 @@ def get_db_connection() -> sqlite3.Connection:
     except Exception as e:
         print(f"Local database failed: {e}")
     
+    # Last resort: generate comprehensive database from REAL extracted data
     try:
-        # Try to import and run the download script for Railway
-        import sys
-        sys.path.append('/app')
-        sys.path.append('.')
-        
         from download_full_db import download_full_database
         db_path = download_full_database()
         if db_path and os.path.exists(db_path):
