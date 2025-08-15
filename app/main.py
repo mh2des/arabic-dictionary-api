@@ -295,7 +295,7 @@ def create_app() -> FastAPI:
         cursor.execute("""
             SELECT lemma, pos, root, camel_english_glosses
             FROM entries 
-            WHERE lemma LIKE ? OR camel_english_glosses LIKE ?
+            WHERE lemma LIKE ? OR lemma_norm LIKE ?
             ORDER BY 
                 CASE WHEN lemma = ? THEN 1
                      WHEN lemma LIKE ? THEN 2 
@@ -306,14 +306,16 @@ def create_app() -> FastAPI:
         
         results = []
         for row in cursor.fetchall():
-            # Parse English glosses
+            # Parse English glosses safely
             glosses = ""
             if row[3]:
                 try:
                     import json
                     gloss_list = json.loads(row[3])
-                    if gloss_list:
-                        glosses = gloss_list[0].replace("+", " ").replace("_", " ")[:100]
+                    if isinstance(gloss_list, list) and gloss_list:
+                        glosses = str(gloss_list[0]).replace("+", " ").replace("_", " ")[:100]
+                    elif isinstance(gloss_list, str):
+                        glosses = gloss_list[:100]
                 except:
                     glosses = str(row[3])[:50] if row[3] else ""
             
