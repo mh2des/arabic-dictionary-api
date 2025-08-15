@@ -253,7 +253,27 @@ def get_db_connection() -> sqlite3.Connection:
         
     except Exception as e:
         print(f"Failed to create REAL database: {e}")
-        raise Exception("Could not create or connect to any database")
+    
+    # EMERGENCY FALLBACK: Use our emergency database system
+    try:
+        print("🚨 EMERGENCY: All database methods failed - using emergency real database")
+        import sys
+        sys.path.append('/app')
+        
+        from emergency_db import get_emergency_database
+        conn = get_emergency_database()
+        
+        # Verify emergency database
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM entries")
+        count = cursor.fetchone()[0]
+        print(f"✅ EMERGENCY DATABASE ACTIVE: {count} entries")
+        
+        return conn
+        
+    except Exception as e:
+        print(f"❌ EMERGENCY DATABASE FAILED: {e}")
+        raise Exception("COMPLETE FAILURE: Could not create or connect to any database")
 def row_to_enhanced_entry(row) -> EnhancedEntry:
     """Convert database row to EnhancedEntry model."""
     return EnhancedEntry(
