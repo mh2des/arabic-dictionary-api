@@ -156,34 +156,10 @@ def row_to_enhanced_entry(row) -> EnhancedEntry:
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application with enhanced database integration."""
-    print("🚀 Starting Arabic Dictionary API...")
-    print(f"Working directory: {os.getcwd()}")
-    print(f"App directory: {os.path.dirname(__file__)}")
     
-    # List files to debug deployment
-    print("Files in current directory:")
-    try:
-        for item in os.listdir("."):
-            if not item.startswith('.'):
-                print(f"  {item}")
-    except Exception as e:
-        print(f"  Error listing files: {e}")
-    
-    print("Files in app directory:")
-    try:
-        app_dir = os.path.dirname(__file__)
-        for item in os.listdir(app_dir):
-            print(f"  {item}")
-    except Exception as e:
-        print(f"  Error listing app files: {e}")
-
     app = FastAPI(
-        title="Enhanced Arabic Dictionary API",
-        description=(
-            "A comprehensive Arabic lexical service with CAMeL Tools integration, "
-            "phonetic transcription, and advanced morphological analysis. "
-            "Features 101,331 fully enhanced entries with multi-script support."
-        ),
+        title="Arabic Dictionary API",
+        description="Comprehensive Arabic lexical service with morphological analysis and phonetic transcription.",
         version="1.0.0",
     )
 
@@ -215,8 +191,8 @@ def create_app() -> FastAPI:
             conn.close()
             
             return {
-                "message": "Enhanced Arabic Dictionary API - Production Ready!",
-                "version": "3.0.0",
+                "message": "Arabic Dictionary API - Production Ready",
+                "version": "1.0.0",
                 "status": "production-ready",
                 "screens_supported": [1, 2, 4, 5, 6, 7],
                 "database_stats": {
@@ -243,13 +219,13 @@ def create_app() -> FastAPI:
                     "flutter_suggest": "/api/suggest",
                     "flutter_search": "/api/search/fast"
                 },
-                "deployment": "Railway Platform - Live and Operational!"
+                "deployment": "Railway Platform - Live and Operational"
             }
         except Exception as e:
             # Fallback response if database fails
             return {
                 "message": "Arabic Dictionary API - Starting Up",
-                "version": "3.0.0", 
+                "version": "1.0.0", 
                 "status": "initializing",
                 "error": f"Database initialization: {str(e)}",
                 "endpoints": {
@@ -620,17 +596,15 @@ def create_app() -> FastAPI:
     try:
         from app.api.dialect_enhanced_routes import router as dialect_router
         app.include_router(dialect_router)
-        print("✅ Enhanced dialect support routes loaded")
-    except ImportError as e:
-        print(f"⚠️  Enhanced dialect routes not available: {e}")
+    except ImportError:
+        pass
     
     # Include enhanced screen API routes
     try:
         from app.api.enhanced_screen_routes import router as screen_router
         app.include_router(screen_router)
-        print("✅ Enhanced screen API routes loaded")
-    except ImportError as e:
-        print(f"⚠️  Enhanced screen routes not available: {e}")
+    except ImportError:
+        pass
 
     return app
 
