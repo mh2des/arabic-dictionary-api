@@ -171,7 +171,13 @@ def create_app() -> FastAPI:
             "status": "Enhanced Database Integration - Fully Operational!"
         }
 
-    # Health check
+    # Health check for Railway deployment (simple, no DB dependency)
+    @app.get("/health", tags=["Utility"])
+    async def health() -> dict[str, str]:
+        """Simple health check for Railway deployment."""
+        return {"status": "ok", "service": "arabic-dictionary-api"}
+
+    # Detailed health check with database
     @app.get("/healthz", tags=["Utility"])
     async def healthz() -> dict[str, str]:
         # Quick database connectivity check
