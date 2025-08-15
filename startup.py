@@ -12,8 +12,26 @@ import gzip
 import shutil
 
 def setup_comprehensive_database():
-    """Setup comprehensive database during startup."""
-    print("🚀 Setting up comprehensive database...")
+    """Setup comprehensive database during startup with NUCLEAR FORCE."""
+    print("� NUCLEAR FORCE DATABASE SETUP...")
+    
+    # NUCLEAR OPTION: Remove any small cached databases first
+    cache_paths = [
+        'app/arabic_dict.db',
+        'app/real_arabic_dict.db',
+        '/app/app/arabic_dict.db',
+        '/app/app/real_arabic_dict.db'
+    ]
+    
+    for cache_path in cache_paths:
+        if os.path.exists(cache_path):
+            try:
+                file_size = os.path.getsize(cache_path) / (1024 * 1024)
+                if file_size < 100:  # Remove small cached databases
+                    os.remove(cache_path)
+                    print(f"💣 NUKED SMALL CACHE: {cache_path} ({file_size:.1f}MB)")
+            except Exception as e:
+                print(f"⚠️ Could not remove cache {cache_path}: {e}")
     
     # Check for compressed database
     compressed_paths = [
@@ -32,8 +50,10 @@ def setup_comprehensive_database():
                 # Create app directory if needed
                 os.makedirs('app', exist_ok=True)
                 
-                target_path = 'app/comprehensive_arabic_dict.db'
-                print(f"📦 Decompressing to: {target_path}")
+                # NUCLEAR FORCE: Use timestamp in filename to bypass caching
+                timestamp = int(time.time())
+                target_path = f'app/NUCLEAR_COMPREHENSIVE_{timestamp}.db'
+                print(f"� NUCLEAR DECOMPRESSING TO: {target_path}")
                 
                 try:
                     with gzip.open(compressed_path, 'rb') as f_in:
@@ -52,19 +72,25 @@ def setup_comprehensive_database():
                         conn.close()
                         
                         if count > 100000:
-                            print(f"✅ Comprehensive database ready: {count} entries")
+                            print(f"💥 NUCLEAR SUCCESS: {count} entries")
                             
-                            # Create symlinks
-                            for symlink_name in ['arabic_dict.db', 'real_arabic_dict.db']:
+                            # NUCLEAR FORCE: Create signal file
+                            signal_file = "FORCE_COMPREHENSIVE_DB.txt"
+                            with open(signal_file, 'w') as f:
+                                f.write(f"{target_path}\n{timestamp}\n101331_ENTRIES_FORCED\n")
+                            print(f"📢 NUCLEAR SIGNAL CREATED: {signal_file}")
+                            
+                            # Create symlinks with FORCE
+                            for symlink_name in ['arabic_dict.db', 'real_arabic_dict.db', 'comprehensive_arabic_dict.db']:
                                 symlink_path = f'app/{symlink_name}'
                                 try:
                                     if os.path.exists(symlink_path):
                                         os.remove(symlink_path)
                                     os.symlink(target_path, symlink_path)
-                                    print(f"🔗 Created symlink: {symlink_name}")
+                                    print(f"� NUCLEAR SYMLINK: {symlink_name}")
                                 except:
                                     shutil.copy2(target_path, symlink_path)
-                                    print(f"📋 Copied to: {symlink_name}")
+                                    print(f"� NUCLEAR COPY: {symlink_name}")
                             
                             return True
                         else:

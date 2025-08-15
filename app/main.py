@@ -191,6 +191,36 @@ def get_db_connection() -> sqlite3.Connection:
         print(f"⚠️ Comprehensive database deployment failed: {e}")
         print("🔄 Falling back to existing database search...")
     
+    # NUCLEAR OPTION: Check for force signal files
+    force_signals = [
+        "/app/FORCE_COMPREHENSIVE_DB.txt",
+        "/app/app/FORCE_COMPREHENSIVE_DB.txt", 
+        "FORCE_COMPREHENSIVE_DB.txt"
+    ]
+    
+    for signal_file in force_signals:
+        if os.path.exists(signal_file):
+            try:
+                with open(signal_file, 'r') as f:
+                    lines = f.read().strip().split('\n')
+                    if len(lines) >= 3 and "101331_ENTRIES_FORCED" in lines[2]:
+                        force_db_path = lines[0]
+                        if os.path.exists(force_db_path):
+                            print(f"💥 NUCLEAR FORCE ACTIVATED: {force_db_path}")
+                            conn = sqlite3.connect(force_db_path)
+                            cursor = conn.cursor()
+                            cursor.execute("SELECT COUNT(*) FROM entries")
+                            count = cursor.fetchone()[0]
+                            
+                            if count > 100000:
+                                print(f"💥 NUCLEAR SUCCESS: {count} entries from {force_db_path}")
+                                return conn
+                            else:
+                                conn.close()
+                                print(f"💥 Nuclear database too small: {count} entries")
+            except Exception as e:
+                print(f"⚠️ Nuclear force signal failed: {e}")
+    
     # Print debug info for Railway deployment
     print(f"Current working directory: {os.getcwd()}")
     print(f"Files in current directory: {os.listdir('.')}")
@@ -1089,6 +1119,13 @@ def create_app() -> FastAPI:
     try:
         from app.api.emergency_routes import router as emergency_router
         app.include_router(emergency_router)
+    except ImportError:
+        pass
+    
+    # Include nuclear force routes
+    try:
+        from app.api.nuclear_routes import router as nuclear_router
+        app.include_router(nuclear_router)
     except ImportError:
         pass
 
