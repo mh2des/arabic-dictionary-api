@@ -68,11 +68,15 @@ def get_db_connection() -> sqlite3.Connection:
     if os.path.exists('app'):
         print(f"Files in app directory: {os.listdir('app')}")
     
-    # Railway deployment paths
+    # Railway deployment paths - try new database name first
     possible_paths = [
+        "/app/app/real_arabic_dict.db",                             # New REAL database
         "/app/app/arabic_dict.db",                                  # Railway container path
+        os.path.join(os.path.dirname(__file__), "real_arabic_dict.db"), # app/real_arabic_dict.db
         os.path.join(os.path.dirname(__file__), "arabic_dict.db"), # app/arabic_dict.db
+        os.path.join(os.getcwd(), "app", "real_arabic_dict.db"),     # ./app/real_arabic_dict.db
         os.path.join(os.getcwd(), "app", "arabic_dict.db"),         # ./app/arabic_dict.db
+        "app/real_arabic_dict.db",                                  # relative path
         "app/arabic_dict.db",                                       # relative path
     ]
     
@@ -184,7 +188,7 @@ def get_db_connection() -> sqlite3.Connection:
         print("Creating database with REAL comprehensive data...")
         from real_db_sample import REAL_ENTRIES
         
-        fallback_path = "/app/app/arabic_dict.db"
+        fallback_path = "/app/app/real_arabic_dict.db"  # New filename to force recreation
         os.makedirs(os.path.dirname(fallback_path), exist_ok=True)
         
         # Remove existing file if it exists
