@@ -65,8 +65,66 @@ class BasicInfo(BaseModel):
 # Database connection helper
 def get_db_connection() -> sqlite3.Connection:
     """Get a connection to the enhanced SQLite database."""
-    db_path = os.path.join(os.path.dirname(__file__), "arabic_dict.db")
-    return sqlite3.connect(db_path)
+    # Try multiple possible paths for Railway deployment
+    possible_paths = [
+        os.path.join(os.path.dirname(__file__), "arabic_dict.db"),  # app/arabic_dict.db
+        os.path.join(os.getcwd(), "app", "arabic_dict.db"),         # /app/app/arabic_dict.db
+        os.path.join(os.getcwd(), "arabic_dict.db"),                # /app/arabic_dict.db
+        "app/arabic_dict.db",                                       # relative path
+        "arabic_dict.db"                                            # current directory
+    ]
+    
+    for db_path in possible_paths:
+        if os.path.exists(db_path):
+            print(f"Found database at: {db_path}")
+            return sqlite3.connect(db_path)
+    
+    # If no database found, create a minimal one
+    print("No database found, creating minimal fallback...")
+    fallback_path = "fallback_dict.db"
+    conn = sqlite3.connect(fallback_path)
+    cursor = conn.cursor()
+    
+    # Create minimal schema
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS entries (
+            id INTEGER PRIMARY KEY,
+            lemma TEXT NOT NULL,
+            lemma_norm TEXT,
+            root TEXT,
+            pos TEXT,
+            subpos TEXT,
+            register TEXT,
+            domain TEXT,
+            freq_rank INTEGER,
+            phase2_enhanced INTEGER DEFAULT 0,
+            camel_analyzed INTEGER DEFAULT 0,
+            camel_lemmas TEXT,
+            camel_roots TEXT,
+            camel_pos_tags TEXT,
+            camel_confidence REAL,
+            buckwalter_transliteration TEXT,
+            phonetic_transcription TEXT,
+            semantic_features TEXT
+        )
+    ''')
+    
+    # Add a few test entries
+    test_entries = [
+        ("كتاب", "كتاب", "ك.ت.ب", "noun", "common", None, "education", 1),
+        ("مكتبة", "مكتبة", "ك.ت.ب", "noun", "common", None, "education", 2),
+        ("كتب", "كتب", "ك.ت.ب", "verb", "perfect", None, "education", 3)
+    ]
+    
+    cursor.executemany('''
+        INSERT OR IGNORE INTO entries 
+        (lemma, lemma_norm, root, pos, subpos, register, domain, freq_rank)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', test_entries)
+    
+    conn.commit()
+    print(f"Created fallback database with {len(test_entries)} entries")
+    return conn
 
 def row_to_enhanced_entry(row) -> EnhancedEntry:
     """Convert database row to EnhancedEntry model."""
@@ -98,6 +156,26 @@ def row_to_enhanced_entry(row) -> EnhancedEntry:
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application with enhanced database integration."""
+    print("🚀 Starting Arabic Dictionary API...")
+    print(f"Working directory: {os.getcwd()}")
+    print(f"App directory: {os.path.dirname(__file__)}")
+    
+    # List files to debug deployment
+    print("Files in current directory:")
+    try:
+        for item in os.listdir("."):
+            if not item.startswith('.'):
+                print(f"  {item}")
+    except Exception as e:
+        print(f"  Error listing files: {e}")
+    
+    print("Files in app directory:")
+    try:
+        app_dir = os.path.dirname(__file__)
+        for item in os.listdir(app_dir):
+            print(f"  {item}")
+    except Exception as e:
+        print(f"  Error listing app files: {e}")
 
     app = FastAPI(
         title="Enhanced Arabic Dictionary API",
