@@ -26,4 +26,8 @@ RUN mkdir -p /app/app
 ENV PORT=8000
 EXPOSE $PORT
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Create startup script that forces real database deployment
+RUN chmod +x /app/force_real_db.py
+
+# Use a startup command that ensures real database deployment
+CMD python3 /app/force_real_db.py && uvicorn app.main:app --host 0.0.0.0 --port 8000
