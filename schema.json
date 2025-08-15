@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/arabic-dictionary-entry.json",
+  "$comment": "This schema describes the structure of a single Arabic dictionary entry.",
+  "$ref": "#/definitions/Entry",
+  "definitions": {
+    "Entry": {
+      "type": "object",
+      "properties": {
+        "info": { "$ref": "#/definitions/Info" },
+        "senses": {
+          "type": ["array", "null"],
+          "items": { "$ref": "#/definitions/Sense" }
+        },
+        "examples": {
+          "type": ["array", "null"],
+          "items": { "$ref": "#/definitions/Example" }
+        },
+        "relations": { "$ref": "#/definitions/Relations" },
+        "pronunciation": { "$ref": "#/definitions/Pronunciation" },
+        "dialects": {
+          "type": ["array", "null"],
+          "items": { "$ref": "#/definitions/DialectVariant" }
+        },
+        "inflection": { "$ref": "#/definitions/Inflection" },
+        "derivations": { "$ref": "#/definitions/Derivations" }
+      },
+      "required": ["info"],
+      "additionalProperties": false
+    },
+    "Info": {
+      "type": "object",
+      "properties": {
+        "lemma": { "type": "string" },
+        "lemma_norm": { "type": "string" },
+        "orthographic_variants": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "root": { "type": ["string", "null"] },
+        "pattern": { "type": ["string", "null"] },
+        "pos": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "subpos": { "type": ["string", "null"] },
+        "morph": { "$ref": "#/definitions/Morphology" },
+        "masdars": { "type": ["array", "null"], "items": { "type": "string" } },
+        "active_participle": { "type": ["string", "null"] },
+        "passive_participle": { "type": ["string", "null"] },
+        "imperfect_stem": { "type": ["string", "null"] },
+        "gender": { "type": ["string", "null"] },
+        "plurals": { "type": ["array", "null"], "items": { "type": "string" } },
+        "diminutives": { "type": ["array", "null"], "items": { "type": "string" } },
+        "nisba": { "type": ["array", "null"], "items": { "type": "string" } },
+        "register": { "type": ["string", "null"] },
+        "domain": { "type": ["string", "null"] },
+        "freq": { "type": ["object", "null"] },
+        "etymology": { "type": ["string", "null"] },
+        "quality": { "$ref": "#/definitions/QualityMeta" },
+        "updated_at": { "type": ["string", "null"] }
+      },
+      "required": ["lemma", "lemma_norm", "pos"],
+      "additionalProperties": false
+    },
+    "Morphology": {
+      "type": "object",
+      "properties": {
+        "form": { "type": ["string", "null"] },
+        "voice": { "type": ["string", "null"] },
+        "transitivity": { "type": ["string", "null"] },
+        "valency": { "type": ["string", "null"] },
+        "aspect": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "QualityMeta": {
+      "type": "object",
+      "properties": {
+        "reviewed": { "type": "boolean" },
+        "confidence": { "type": ["number", "null"] },
+        "source_count": { "type": ["integer", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "Sense": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "gloss_ar_short": { "type": ["string", "null"] },
+        "gloss_ar": { "type": ["string", "null"] },
+        "gloss_en": { "type": ["string", "null"] },
+        "labels": { "type": ["array", "null"], "items": { "type": "string" } },
+        "domains": { "type": ["array", "null"], "items": { "type": "string" } },
+        "usage_notes": { "type": ["string", "null"] },
+        "subcat": { "type": ["string", "null"] },
+        "synonyms_ar": { "type": ["array", "null"], "items": { "type": "string" } },
+        "antonyms_ar": { "type": ["array", "null"], "items": { "type": "string" } },
+        "hypernyms": { "type": ["array", "null"], "items": { "type": "string" } },
+        "hyponyms": { "type": ["array", "null"], "items": { "type": "string" } },
+        "translations": { "type": ["object", "null"] },
+        "confidence": { "type": ["number", "null"] }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "Example": {
+      "type": "object",
+      "properties": {
+        "ar": { "type": "string" },
+        "en": { "type": ["string", "null"] },
+        "dialect": { "type": ["string", "null"] },
+        "register": { "type": ["string", "null"] },
+        "audio": { "type": ["array", "null"], "items": { "type": "string" } },
+        "source": { "type": ["string", "null"] },
+        "license": { "type": ["string", "null"] },
+        "highlight": { "type": ["array", "null"], "items": { "type": "integer" } },
+        "irab": { "type": ["string", "null"] }
+      },
+      "required": ["ar"],
+      "additionalProperties": false
+    },
+    "RelationItem": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sense": { "type": ["string", "null"] },
+        "note": { "type": ["string", "null"] }
+      },
+      "required": ["id"],
+      "additionalProperties": false
+    },
+    "Relations": {
+      "type": "object",
+      "properties": {
+        "synonyms": { "type": ["array", "null"], "items": { "$ref": "#/definitions/RelationItem" } },
+        "near_synonyms": { "type": ["array", "null"], "items": { "$ref": "#/definitions/RelationItem" } },
+        "antonyms": { "type": ["array", "null"], "items": { "$ref": "#/definitions/RelationItem" } },
+        "related": { "type": ["array", "null"], "items": { "$ref": "#/definitions/RelationItem" } }
+      },
+      "additionalProperties": false
+    },
+    "PronFields": {
+      "type": "object",
+      "properties": {
+        "ipa": { "type": ["string", "null"] },
+        "phonetic": { "type": ["string", "null"] },
+        "syllables": { "type": ["string", "null"] },
+        "stress": { "type": ["string", "null"] },
+        "latin": { "type": ["string", "null"] },
+        "audio": { "type": ["array", "null"], "items": { "type": "string" } },
+        "tts_provider": { "type": ["string", "null"] },
+        "quality": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "Pronunciation": {
+      "type": "object",
+      "properties": {
+        "pron": { "anyOf": [ { "$ref": "#/definitions/PronFields" }, { "type": "null" } ] },
+        "translits": { "type": ["object", "null"] },
+        "rhyme_key": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "DialectVariant": {
+      "type": "object",
+      "properties": {
+        "dialect": { "type": "string" },
+        "lemma": { "type": "string" },
+        "pron": { "anyOf": [ { "$ref": "#/definitions/Pronunciation" }, { "type": "null" } ] },
+        "senses": { "type": ["array", "null"], "items": { "$ref": "#/definitions/Sense" } },
+        "examples": { "type": ["array", "null"], "items": { "$ref": "#/definitions/Example" } },
+        "notes": { "type": ["string", "null"] },
+        "equivalence": { "type": ["string", "null"] }
+      },
+      "required": ["dialect", "lemma"],
+      "additionalProperties": false
+    },
+    "Inflection": {
+      "type": "object",
+      "properties": {
+        "verb_tables": { "type": ["object", "null"] },
+        "noun_tables": { "type": ["object", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "Derivations": {
+      "type": "object",
+      "properties": {
+        "masdars": { "type": ["array", "null"], "items": { "type": "string" } },
+        "ism_fa3il": { "type": ["string", "null"] },
+        "ism_maf3ul": { "type": ["string", "null"] },
+        "sifah_mushabbaha": { "type": ["string", "null"] },
+        "nouns_from_root": { "type": ["array", "null"], "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    }
+  }
+}

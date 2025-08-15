@@ -1,0 +1,118 @@
+2025-08-15 12:55:52,210 - INFO - ============================================================
+2025-08-15 12:59:09,066 - INFO - STARTING PHASE 2 ENHANCEMENT
+2025-08-15 12:59:09,066 - INFO - ==================================================
+2025-08-15 12:59:09,066 - INFO - Initializing available CAMeL Tools...
+2025-08-15 12:59:10,135 - INFO - Trying database: morphology-db-msa-r13
+2025-08-15 12:59:10,135 - WARNING - Database morphology-db-msa-r13 unavailable: [Errno 2] No such file or directory: 'morphology-db-msa-r13'
+2025-08-15 12:59:10,135 - INFO - Trying database: calima-msa-r13
+2025-08-15 12:59:10,182 - WARNING - Database calima-msa-r13 unavailable: [Errno 2] No such file or directory: 'calima-msa-r13'
+2025-08-15 12:59:10,182 - INFO - Trying database: msa-r13
+2025-08-15 12:59:10,182 - WARNING - Database msa-r13 unavailable: [Errno 2] No such file or directory: 'msa-r13'
+2025-08-15 12:59:10,182 - INFO - Trying database: msa
+2025-08-15 12:59:10,182 - WARNING - Database msa unavailable: [Errno 2] No such file or directory: 'msa'
+2025-08-15 12:59:10,182 - WARNING - No morphology database available - proceeding with basic features
+2025-08-15 12:59:10,182 - INFO - Ensuring Phase 2 enhancement columns exist...
+2025-08-15 12:59:10,185 - INFO - Phase 2 database schema updated - 0 columns added
+2025-08-15 12:59:10,190 - INFO - Enhancing 2000 entries with Phase 2 features
+2025-08-15 12:59:10,190 - INFO - Morphology analyzer available: False
+2025-08-15 12:59:10,190 - ERROR - Enhancement failed: table entries_fts has no column named lemma
+2025-08-15 13:00:58,329 - INFO - STARTING PHASE 2 ENHANCEMENT
+2025-08-15 13:00:58,335 - INFO - ==================================================
+2025-08-15 13:00:58,343 - INFO - Enhancing 2000 entries with Phase 2 features
+2025-08-15 13:00:58,346 - ERROR - Enhancement failed: table entries_fts has no column named lemma
+2025-08-15 13:02:38,608 - INFO - STARTING PHASE 2 ENHANCEMENT
+2025-08-15 13:02:38,608 - INFO - ==================================================
+2025-08-15 13:02:38,608 - INFO - Disabling FTS triggers temporarily...
+2025-08-15 13:02:38,706 - INFO - Enhancing 2000 entries with Phase 2 features
+2025-08-15 13:02:38,987 - INFO - Recreating FTS triggers...
+2025-08-15 13:02:39,076 - INFO - PHASE 2 ENHANCEMENT COMPLETE!
+2025-08-15 13:02:39,076 - INFO - STATISTICS:
+2025-08-15 13:02:39,076 - INFO -    Entries processed: 2000
+2025-08-15 13:02:39,076 - INFO -    Phonetic transcription: 2000
+2025-08-15 13:02:39,076 - INFO -    Semantic features: 2000
+2025-08-15 13:02:39,076 - INFO -    Processing time: 0.4 seconds
+2025-08-15 13:02:39,076 - INFO -    Average rate: 5414.5 entries/sec
+2025-08-15 13:03:30,089 - INFO - STARTING PHASE 2 ENHANCEMENT
+2025-08-15 13:03:30,090 - INFO - ==================================================
+2025-08-15 13:03:30,090 - INFO - Disabling FTS triggers temporarily...
+2025-08-15 13:03:30,192 - INFO - Enhancing 10000 entries with Phase 2 features
+2025-08-15 13:03:31,230 - INFO - Recreating FTS triggers...
+2025-08-15 13:03:31,304 - INFO - PHASE 2 ENHANCEMENT COMPLETE!
+2025-08-15 13:03:31,304 - INFO - STATISTICS:
+2025-08-15 13:03:31,304 - INFO -    Entries processed: 10000
+2025-08-15 13:03:31,304 - INFO -    Phonetic transcription: 10000
+2025-08-15 13:03:31,304 - INFO -    Semantic features: 10000
+2025-08-15 13:03:31,304 - INFO -    Processing time: 1.1 seconds
+2025-08-15 13:03:31,304 - INFO -    Average rate: 8986.8 entries/sec
+2025-08-15 13:05:48,552 - INFO - STARTING PHASE 2 ENHANCEMENT
+2025-08-15 13:05:48,552 - INFO - ==================================================
+2025-08-15 13:05:48,552 - INFO - Disabling FTS triggers temporarily...
+2025-08-15 13:05:48,687 - INFO - Enhancing 20000 entries with Phase 2 features
+2025-08-15 13:05:50,702 - INFO - Recreating FTS triggers...
+2025-08-15 13:05:50,735 - INFO - PHASE 2 ENHANCEMENT COMPLETE!
+2025-08-15 13:05:50,735 - INFO - STATISTICS:
+2025-08-15 13:05:50,735 - INFO -    Entries processed: 20000
+2025-08-15 13:05:50,735 - INFO -    Phonetic transcription: 20000
+2025-08-15 13:05:50,735 - INFO -    Semantic features: 20000
+2025-08-15 13:05:50,735 - INFO -    Processing time: 2.0 seconds
+2025-08-15 13:05:50,735 - INFO -    Average rate: 9763.7 entries/sec
+2025-08-15 13:07:21,938 - INFO - STARTING PHASE 2 ENHANCEMENT
+2025-08-15 13:07:21,938 - INFO - ==================================================
+2025-08-15 13:07:21,938 - INFO - Disabling FTS triggers temporarily...
+2025-08-15 13:07:22,064 - INFO - Enhancing 2000 entries with Phase 2 features
+2025-08-15 13:07:22,306 - INFO - Recreating FTS triggers...
+2025-08-15 13:07:22,352 - INFO - PHASE 2 ENHANCEMENT COMPLETE!
+2025-08-15 13:07:22,352 - INFO - STATISTICS:
+2025-08-15 13:07:22,352 - INFO -    Entries processed: 2000
+2025-08-15 13:07:22,363 - INFO -    Phonetic transcription: 2000
+2025-08-15 13:07:22,363 - INFO -    Semantic features: 2000
+2025-08-15 13:07:22,363 - INFO -    Processing time: 0.3 seconds
+2025-08-15 13:07:22,363 - INFO -    Average rate: 6946.0 entries/sec
+2025-08-15 13:07:52,549 - INFO - STARTING PHASE 2 ENHANCEMENT
+2025-08-15 13:07:52,549 - INFO - ==================================================
+2025-08-15 13:07:52,549 - INFO - Disabling FTS triggers temporarily...
+2025-08-15 13:07:52,734 - INFO - Enhancing 30000 entries with Phase 2 features
+2025-08-15 13:07:55,640 - INFO - Recreating FTS triggers...
+2025-08-15 13:07:55,698 - INFO - PHASE 2 ENHANCEMENT COMPLETE!
+2025-08-15 13:07:55,698 - INFO - STATISTICS:
+2025-08-15 13:07:55,698 - INFO -    Entries processed: 30000
+2025-08-15 13:07:55,698 - INFO -    Phonetic transcription: 30000
+2025-08-15 13:07:55,698 - INFO -    Semantic features: 30000
+2025-08-15 13:07:55,698 - INFO -    Processing time: 3.0 seconds
+2025-08-15 13:07:55,698 - INFO -    Average rate: 10124.6 entries/sec
+2025-08-15 13:08:23,959 - INFO - STARTING PHASE 2 ENHANCEMENT
+2025-08-15 13:08:23,959 - INFO - ==================================================
+2025-08-15 13:08:23,960 - INFO - Disabling FTS triggers temporarily...
+2025-08-15 13:08:24,127 - INFO - Enhancing 2000 entries with Phase 2 features
+2025-08-15 13:08:24,331 - INFO - Recreating FTS triggers...
+2025-08-15 13:08:24,384 - INFO - PHASE 2 ENHANCEMENT COMPLETE!
+2025-08-15 13:08:24,384 - INFO - STATISTICS:
+2025-08-15 13:08:24,384 - INFO -    Entries processed: 2000
+2025-08-15 13:08:24,384 - INFO -    Phonetic transcription: 2000
+2025-08-15 13:08:24,384 - INFO -    Semantic features: 2000
+2025-08-15 13:08:24,384 - INFO -    Processing time: 0.3 seconds
+2025-08-15 13:08:24,384 - INFO -    Average rate: 7789.4 entries/sec
+2025-08-15 13:08:47,679 - INFO - STARTING PHASE 2 ENHANCEMENT
+2025-08-15 13:08:47,679 - INFO - ==================================================
+2025-08-15 13:08:47,685 - INFO - Disabling FTS triggers temporarily...
+2025-08-15 13:08:47,860 - INFO - Enhancing 2000 entries with Phase 2 features
+2025-08-15 13:08:48,076 - INFO - Recreating FTS triggers...
+2025-08-15 13:08:48,130 - INFO - PHASE 2 ENHANCEMENT COMPLETE!
+2025-08-15 13:08:48,130 - INFO - STATISTICS:
+2025-08-15 13:08:48,130 - INFO -    Entries processed: 2000
+2025-08-15 13:08:48,130 - INFO -    Phonetic transcription: 2000
+2025-08-15 13:08:48,130 - INFO -    Semantic features: 2000
+2025-08-15 13:08:48,130 - INFO -    Processing time: 0.3 seconds
+2025-08-15 13:08:48,130 - INFO -    Average rate: 7395.3 entries/sec
+2025-08-15 13:09:12,249 - INFO - STARTING PHASE 2 ENHANCEMENT
+2025-08-15 13:09:12,251 - INFO - ==================================================
+2025-08-15 13:09:12,251 - INFO - Disabling FTS triggers temporarily...
+2025-08-15 13:09:12,513 - INFO - Enhancing 33331 entries with Phase 2 features
+2025-08-15 13:09:15,549 - INFO - Recreating FTS triggers...
+2025-08-15 13:09:15,617 - INFO - PHASE 2 ENHANCEMENT COMPLETE!
+2025-08-15 13:09:15,617 - INFO - STATISTICS:
+2025-08-15 13:09:15,617 - INFO -    Entries processed: 33331
+2025-08-15 13:09:15,617 - INFO -    Phonetic transcription: 33331
+2025-08-15 13:09:15,622 - INFO -    Semantic features: 33331
+2025-08-15 13:09:15,622 - INFO -    Processing time: 3.1 seconds
+2025-08-15 13:09:15,622 - INFO -    Average rate: 10743.8 entries/sec

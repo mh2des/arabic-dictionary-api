@@ -1,0 +1,26 @@
+## Example configuration file for the Arabic dictionary backend.
+#
+# Copy this file to `settings.toml` and modify values as needed.
+
+[server]
+host = "0.0.0.0"
+port = 8000
+
+[database]
+# Use a SQLite database by default.  For PostgreSQL set
+# url = "postgresql+psycopg2://user:password@localhost/dbname"
+url = "sqlite:///./arabic_dict.db"
+
+[search]
+# Backend for search: "sqlite" or "postgres" (not yet implemented)
+backend = "sqlite"
+
+[cache]
+# Enable Redis caching for definitions and search results.
+enabled = false
+url = "redis://localhost:6379/0"
+
+[features]
+# Enable optional TTS endpoint.  Requires configuring a provider.
+tts = false
+provider = "none"
