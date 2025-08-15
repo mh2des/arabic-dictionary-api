@@ -84,10 +84,6 @@ def get_db_connection() -> sqlite3.Connection:
                 file_size = os.path.getsize(db_path) / (1024 * 1024)  # MB
                 print(f"Found database at: {db_path} ({file_size:.1f} MB)")
                 
-                if file_size < 50:  # If less than 50MB, it's probably not our real database
-                    print(f"Database too small ({file_size:.1f} MB), skipping...")
-                    continue
-                
                 conn = sqlite3.connect(db_path)
                 # Test the connection
                 cursor = conn.cursor()
@@ -95,7 +91,7 @@ def get_db_connection() -> sqlite3.Connection:
                 count = cursor.fetchone()[0]
                 print(f"Database connected: {db_path} with {count} entries")
                 
-                if count < 1000:  # If less than 1000 entries, it's probably fallback
+                if count < 10:  # If less than 10 entries, it's probably empty fallback
                     print(f"Database has too few entries ({count}), skipping...")
                     conn.close()
                     continue
@@ -105,7 +101,28 @@ def get_db_connection() -> sqlite3.Connection:
                 print(f"Database at {db_path} failed: {e}")
                 continue
     
-    # If no database found, create a minimal one
+    # If no valid database found, try to download/create one
+    print("No valid database found, creating enhanced database...")
+    
+    try:
+        # Try to import and run the download script
+        import sys
+        sys.path.append('/app')
+        sys.path.append('.')
+        
+        from download_db import download_database
+        db_path = download_database()
+        if db_path and os.path.exists(db_path):
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM entries")
+            count = cursor.fetchone()[0]
+            print(f"✅ Successfully created database with {count} entries")
+            return conn
+    except Exception as e:
+        print(f"Failed to download database: {e}")
+    
+    # Final fallback - create minimal database
     print("Creating minimal fallback database...")
     fallback_path = "/tmp/fallback_dict.db"
     conn = sqlite3.connect(fallback_path)
