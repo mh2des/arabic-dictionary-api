@@ -102,100 +102,44 @@ def get_db_connection() -> sqlite3.Connection:
                 continue
     
     # If no valid database found, try to download/create one
-    print("No valid database found, creating enhanced database...")
+    print("No valid database found, trying to restore full database...")
     
     try:
-        # Try to import and run the download script
+        # First try to use the local full database if available
+        local_db_path = os.path.join(os.path.dirname(__file__), "arabic_dict.db")
+        if os.path.exists(local_db_path):
+            file_size = os.path.getsize(local_db_path) / (1024 * 1024)  # MB
+            if file_size > 100:  # Our real database is ~180MB
+                print(f"✅ Found local full database: {file_size:.1f} MB")
+                conn = sqlite3.connect(local_db_path)
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM entries")
+                count = cursor.fetchone()[0]
+                print(f"✅ Successfully connected to full database with {count} entries")
+                return conn
+    except Exception as e:
+        print(f"Local database failed: {e}")
+    
+    try:
+        # Try to import and run the download script for Railway
         import sys
         sys.path.append('/app')
         sys.path.append('.')
         
-        from download_db import download_database
-        db_path = download_database()
+        from download_full_db import download_full_database
+        db_path = download_full_database()
         if db_path and os.path.exists(db_path):
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM entries")
             count = cursor.fetchone()[0]
-            print(f"✅ Successfully created database with {count} entries")
+            print(f"✅ Successfully created comprehensive database with {count} entries")
             return conn
     except Exception as e:
         print(f"Failed to download database: {e}")
     
-    # Final fallback - create simple but functional database  
-    print("Creating simple functional database...")
-    fallback_path = "/app/app/arabic_dict.db"  # Use the expected path
-    
-    # Remove existing file if it exists to avoid conflicts
-    if os.path.exists(fallback_path):
-        os.remove(fallback_path)
-    
-    # Ensure directory exists
-    os.makedirs(os.path.dirname(fallback_path), exist_ok=True)
-    
-    conn = sqlite3.connect(fallback_path)
-    cursor = conn.cursor()
-    
-    # Create simplified schema that matches our API
-    cursor.execute('''
-        CREATE TABLE entries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            lemma TEXT NOT NULL,
-            lemma_norm TEXT,
-            root TEXT,
-            pos TEXT,
-            subpos TEXT,
-            register TEXT,
-            domain TEXT,
-            freq_rank INTEGER
-        )
-    ''')
-    
-    # Simple but comprehensive test entries - no explicit IDs
-    simple_entries = [
-        ("كَتَبَ", "كتب", "ك ت ب", "verb", "perfect", "فصحى", "education", 100),
-        ("كِتَابٌ", "كتاب", "ك ت ب", "noun", "common", "فصحى", "education", 50),
-        ("مَكْتَبٌ", "مكتب", "ك ت ب", "noun", "common", "فصحى", "workplace", 200),
-        ("مَكْتَبَةٌ", "مكتبة", "ك ت ب", "noun", "common", "فصحى", "education", 150),
-        ("كَاتِبٌ", "كاتب", "ك ت ب", "noun", "agent", "فصحى", "profession", 300),
-        ("قَرَأَ", "قرأ", "ق ر أ", "verb", "perfect", "فصحى", "education", 80),
-        ("قُرْآنٌ", "قرآن", "ق ر أ", "noun", "proper", "فصحى", "religion", 20),
-        ("قَارِئٌ", "قارئ", "ق ر أ", "noun", "agent", "فصحى", "education", 400),
-        ("قِرَاءَةٌ", "قراءة", "ق ر أ", "noun", "masdar", "فصحى", "education", 250),
-        ("دَرَسَ", "درس", "د ر س", "verb", "perfect", "فصحى", "education", 120),
-        ("دَرْسٌ", "درس", "د ر س", "noun", "masdar", "فصحى", "education", 90),
-        ("مَدْرَسَةٌ", "مدرسة", "د ر س", "noun", "place", "فصحى", "education", 60),
-        ("مُدَرِّسٌ", "مدرس", "د ر س", "noun", "agent", "فصحى", "profession", 180),
-        ("طَالِبٌ", "طالب", "ط ل ب", "noun", "agent", "فصحى", "education", 110),
-        ("عَلِمَ", "علم", "ع ل م", "verb", "perfect", "فصحى", "knowledge", 150),
-        ("عِلْمٌ", "علم", "ع ل م", "noun", "masdar", "فصحى", "knowledge", 70),
-        ("عَالِمٌ", "عالم", "ع ل م", "noun", "agent", "فصحى", "profession", 220),
-        ("مُعَلِّمٌ", "معلم", "ع ل م", "noun", "agent", "فصحى", "profession", 160),
-        ("بَيْتٌ", "بيت", "ب ي ت", "noun", "common", "فصحى", "home", 30),
-        ("مَاءٌ", "ماء", "م و ء", "noun", "common", "فصحى", "nature", 40),
-    ]
-    
-    cursor.executemany('''
-        INSERT INTO entries 
-        (lemma, lemma_norm, root, pos, subpos, register, domain, freq_rank)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', simple_entries)
-    
-    conn.commit()
-    
-    # Test the database
-    cursor.execute("SELECT COUNT(*) FROM entries")
-    count = cursor.fetchone()[0]
-    print(f"✅ Created simple database with {count} entries")
-    
-    # Test a sample query
-    cursor.execute("SELECT lemma, root, pos FROM entries LIMIT 3")
-    sample = cursor.fetchall()
-    print("📋 Sample entries:")
-    for row in sample:
-        print(f"  - {row[0]} ({row[1]}) - {row[2]}")
-    
-    return conn
+    # If all else fails, return error
+    raise Exception("Could not create or connect to any database")
 def row_to_enhanced_entry(row) -> EnhancedEntry:
     """Convert database row to EnhancedEntry model."""
     return EnhancedEntry(
