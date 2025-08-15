@@ -239,15 +239,15 @@ def row_to_enhanced_entry(row) -> EnhancedEntry:
         register=row[6],
         domain=row[7],
         freq_rank=row[8],
-        camel_lemmas=json.loads(row[9]) if row[9] else [],
-        camel_roots=json.loads(row[10]) if row[10] else [],
-        camel_pos_tags=json.loads(row[11]) if row[11] else [],
-        camel_confidence=row[12],
-        buckwalter_transliteration=row[13],
-        phonetic_transcription=json.loads(row[14]) if row[14] else None,
-        semantic_features=json.loads(row[15]) if row[15] else None,
-        phase2_enhanced=bool(row[16]),
-        camel_analyzed=bool(row[17])
+        camel_lemmas=json.loads(row[9]) if len(row) > 9 and row[9] else [],
+        camel_roots=json.loads(row[10]) if len(row) > 10 and row[10] else [],
+        camel_pos_tags=json.loads(row[11]) if len(row) > 11 and row[11] else [],
+        camel_confidence=row[12] if len(row) > 12 else None,
+        buckwalter_transliteration=row[13] if len(row) > 13 else None,
+        phonetic_transcription=json.loads(row[14]) if len(row) > 14 and row[14] else None,
+        semantic_features=json.loads(row[15]) if len(row) > 15 and row[15] else None,
+        phase2_enhanced=bool(row[16]) if len(row) > 16 else False,
+        camel_analyzed=bool(row[17]) if len(row) > 17 else False
     )
 
 # ---------------------------------------------------------------------------
@@ -529,13 +529,10 @@ def create_app() -> FastAPI:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Try exact match first
+        # Select only columns that exist in simplified schema
         cursor.execute("""
             SELECT 
-                id, lemma, lemma_norm, root, pos, subpos, register, domain, freq_rank,
-                camel_lemmas, camel_roots, camel_pos_tags, camel_confidence,
-                buckwalter_transliteration, phonetic_transcription, semantic_features,
-                phase2_enhanced, camel_analyzed
+                id, lemma, lemma_norm, root, pos, subpos, register, domain, freq_rank
             FROM entries 
             WHERE lemma = ? OR lemma_norm = ?
             LIMIT 1
@@ -583,9 +580,9 @@ def create_app() -> FastAPI:
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT lemma, buckwalter_transliteration, phonetic_transcription, semantic_features
+            SELECT lemma, root, pos
             FROM entries 
-            WHERE lemma = ? AND phase2_enhanced = 1
+            WHERE lemma = ?
             LIMIT 1
         """, (word,))
         
@@ -595,7 +592,14 @@ def create_app() -> FastAPI:
         if not row:
             raise HTTPException(status_code=404, detail=f"No phonetic data found for '{word}'")
         
-        phonetic_data = json.loads(row[2]) if row[2] else {}
+        # Generate basic phonetic data from available information
+        phonetic_data = {
+            "lemma": row[0],
+            "root": row[1] or "غير محدد",
+            "pos": row[2] or "غير محدد",
+            "transcription": f"[{row[0]}]",  # Basic transcription
+            "note": "Phonetic data generated from basic entry"
+        }
         semantic_data = json.loads(row[3]) if row[3] else {}
         
         return {
@@ -626,18 +630,18 @@ def create_app() -> FastAPI:
         cursor.execute("SELECT COUNT(*) FROM entries")
         stats["total_entries"] = cursor.fetchone()[0]
         
-        cursor.execute("SELECT COUNT(*) FROM entries WHERE phase2_enhanced = 1")
-        stats["phase2_enhanced"] = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM entries WHERE root IS NOT NULL")
+        stats["with_root"] = cursor.fetchone()[0]
         
-        cursor.execute("SELECT COUNT(*) FROM entries WHERE camel_analyzed = 1")
-        stats["camel_enhanced"] = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM entries WHERE pos IS NOT NULL")
+        stats["with_pos"] = cursor.fetchone()[0]
         
-        # Feature coverage
-        cursor.execute("SELECT COUNT(*) FROM entries WHERE buckwalter_transliteration IS NOT NULL")
-        stats["buckwalter_coverage"] = cursor.fetchone()[0]
+        # Feature coverage - simplified for basic schema
+        cursor.execute("SELECT COUNT(*) FROM entries WHERE lemma IS NOT NULL")
+        stats["lemma_coverage"] = cursor.fetchone()[0]
         
-        cursor.execute("SELECT COUNT(*) FROM entries WHERE phonetic_transcription IS NOT NULL")
-        stats["phonetic_coverage"] = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM entries WHERE domain IS NOT NULL")
+        stats["domain_coverage"] = cursor.fetchone()[0]
         
         # POS distribution
         cursor.execute("""
