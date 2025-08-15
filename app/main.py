@@ -799,6 +799,13 @@ def create_app() -> FastAPI:
         app.include_router(screen_router)
     except ImportError:
         pass
+    
+    # Include emergency database routes
+    try:
+        from app.api.emergency_routes import router as emergency_router
+        app.include_router(emergency_router)
+    except ImportError:
+        pass
 
     return app
 
