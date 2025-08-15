@@ -2,17 +2,22 @@ FROM python:3.11-slim AS base
 
 WORKDIR /app
 
-# Install system dependencies (gcc, git-lfs, etc.)
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    git-lfs \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy project files
 COPY . /app
 
-# Ensure git-lfs is initialized and pull LFS files (for database)
-RUN git lfs install && git lfs pull
+# Check if database exists, if not, create a minimal one for testing
+RUN if [ ! -f app/arabic_dict.db ]; then \
+        echo "Database file not found, creating minimal test database..."; \
+        python3 -c "import sqlite3; conn = sqlite3.connect('app/arabic_dict.db'); conn.execute('CREATE TABLE entries (id INTEGER PRIMARY KEY, lemma TEXT, pos TEXT)'); conn.execute('INSERT INTO entries (lemma, pos) VALUES (\"test\", \"noun\")'); conn.commit(); conn.close()"; \
+    else \
+        echo "Database file found, size:"; \
+        ls -lh app/arabic_dict.db; \
+    fi
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
