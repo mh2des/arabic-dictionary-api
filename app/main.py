@@ -506,46 +506,136 @@ def create_app() -> FastAPI:
         Fast search endpoint optimized for Flutter app performance.
         Returns minimal but essential data for quick results.
         """
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        # Search with basic info for speed
-        cursor.execute("""
-            SELECT lemma, pos, root, camel_english_glosses
-            FROM entries 
-            WHERE lemma LIKE ? OR lemma_norm LIKE ?
-            ORDER BY 
-                CASE WHEN lemma = ? THEN 1
-                     WHEN lemma LIKE ? THEN 2 
-                     ELSE 3 END,
-                LENGTH(lemma)
-            LIMIT ?
-        """, (f"%{q}%", f"%{q}%", q, f"{q}%", limit))
-        
-        results = []
-        for row in cursor.fetchall():
-            # Parse English glosses safely
-            glosses = ""
-            if row[3]:
-                try:
-                    import json
-                    gloss_list = json.loads(row[3])
-                    if isinstance(gloss_list, list) and gloss_list:
-                        glosses = str(gloss_list[0]).replace("+", " ").replace("_", " ")[:100]
-                    elif isinstance(gloss_list, str):
-                        glosses = gloss_list[:100]
-                except:
-                    glosses = str(row[3])[:50] if row[3] else ""
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
             
-            results.append({
-                "lemma": row[0],
-                "pos": row[1],
-                "root": row[2],
-                "definition": glosses
-            })
-        
-        conn.close()
-        return {"results": results, "count": len(results)}
+            # First, check what columns are available in the database
+            cursor.execute("PRAGMA table_info(entries)")
+            columns = [row[1] for row in cursor.fetchall()]
+            print(f"Available columns: {columns}")
+            
+            # Use columns that actually exist in our database
+            if 'camel_english_glosses' in columns:
+                # Full schema query
+                cursor.execute("""
+                    SELECT lemma, pos, root, camel_english_glosses
+                    FROM entries 
+                    WHERE lemma LIKE ? OR lemma_norm LIKE ?
+                    ORDER BY 
+                        CASE WHEN lemma = ? THEN 1
+                             WHEN lemma LIKE ? THEN 2 
+                             ELSE 3 END,
+                        LENGTH(lemma)
+                    LIMIT ?
+                """, (f"%{q}%", f"%{q}%", q, f"{q}%", limit))
+            else:
+                # Simplified query for our current schema
+                cursor.execute("""
+                    SELECT lemma, pos, root
+                    FROM entries 
+                    WHERE lemma LIKE ? OR (lemma_norm IS NOT NULL AND lemma_norm LIKE ?)
+                    ORDER BY 
+                        CASE WHEN lemma = ? THEN 1
+                             WHEN lemma LIKE ? THEN 2 
+                             ELSE 3 END,
+                        LENGTH(lemma)
+                    LIMIT ?
+                """, (f"%{q}%", f"%{q}%", q, f"{q}%", limit))
+            
+            results = []
+            for row in cursor.fetchall():
+                # Handle different row lengths based on schema
+                if len(row) >= 4:
+                    lemma, pos, root, glosses = row[0], row[1], row[2], row[3]
+                    # Parse English glosses safely
+                    definition = ""
+                    if glosses:
+                        try:
+                            glosses_list = json.loads(glosses) if isinstance(glosses, str) else glosses
+                            definition = ", ".join(glosses_list[:3]) if isinstance(glosses_list, list) else str(glosses)
+                        except (json.JSONDecodeError, TypeError):
+                            definition = str(glosses)
+                else:
+                    lemma, pos, root = row[0], row[1], row[2]
+                    definition = ""
+                
+                results.append({
+                    "lemma": lemma or "",
+                    "pos": pos or "",
+                    "root": root or "",
+                    "definition": definition
+                })
+            
+            conn.close()
+            
+            return {
+                "results": results,
+                "count": len(results),
+                "query": q,
+                "limit": limit
+            }
+            
+        except Exception as e:
+            print(f"Search error: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            return {
+                "results": [],
+                "count": 0,
+                "query": q,
+                "error": str(e)
+            }
+            
+    @app.get("/api/suggest", tags=["Flutter Integration"])
+    async def suggest_words(q: str = Query(..., min_length=1), limit: int = Query(10, le=50)):
+        """
+        Word suggestion endpoint for auto-complete functionality.
+        Returns list of words that start with the query.
+        """
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            # Get suggestions based on available schema
+            cursor.execute("PRAGMA table_info(entries)")
+            columns = [row[1] for row in cursor.fetchall()]
+            
+            if 'lemma_norm' in columns:
+                cursor.execute("""
+                    SELECT DISTINCT lemma
+                    FROM entries 
+                    WHERE lemma LIKE ? OR (lemma_norm IS NOT NULL AND lemma_norm LIKE ?)
+                    ORDER BY LENGTH(lemma), lemma
+                    LIMIT ?
+                """, (f"{q}%", f"{q}%", limit))
+            else:
+                cursor.execute("""
+                    SELECT DISTINCT lemma
+                    FROM entries 
+                    WHERE lemma LIKE ?
+                    ORDER BY LENGTH(lemma), lemma
+                    LIMIT ?
+                """, (f"{q}%", limit))
+            
+            suggestions = [row[0] for row in cursor.fetchall() if row[0]]
+            conn.close()
+            
+            return {
+                "suggestions": suggestions,
+                "count": len(suggestions),
+                "query": q
+            }
+            
+        except Exception as e:
+            print(f"Suggestions error: {e}")
+            return {
+                "suggestions": [],
+                "count": 0,
+                "query": q,
+                "error": str(e)
+            }
     @app.get("/search/enhanced", tags=["Enhanced Lookup"])
     async def enhanced_search(
         q: str = Query(..., description="Search query"),
