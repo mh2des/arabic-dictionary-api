@@ -54,6 +54,7 @@ async def emergency_deploy_real_database() -> Dict[str, Any]:
         
         # Insert real comprehensive data
         for i, entry in enumerate(REAL_ENTRIES):
+            # entry is a tuple: (lemma, lemma_norm, root, pos, subpos, register, domain, freq_rank)
             cursor.execute("""
             INSERT INTO entries (
                 id, lemma, lemma_norm, root, pos, subpos, register, domain,
@@ -63,24 +64,24 @@ async def emergency_deploy_real_database() -> Dict[str, Any]:
                 phase2_enhanced, camel_analyzed
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                i + 1,
-                entry["lemma"],
-                entry.get("lemma_norm"),
-                entry.get("root"),
-                entry.get("pos"),
-                entry.get("subpos"),
-                entry.get("register"),
-                entry.get("domain"),
-                entry.get("freq_rank"),
-                ",".join(entry.get("camel_lemmas", [])),
-                ",".join(entry.get("camel_roots", [])),
-                ",".join(entry.get("camel_pos_tags", [])),
-                entry.get("camel_confidence"),
-                entry.get("buckwalter_transliteration"),
-                entry.get("phonetic_transcription"),
-                entry.get("semantic_features"),
-                1 if entry.get("phase2_enhanced") else 0,
-                1 if entry.get("camel_analyzed") else 0
+                i + 1,                  # id
+                entry[0],              # lemma
+                entry[1] if len(entry) > 1 else None,  # lemma_norm
+                entry[2] if len(entry) > 2 else None,  # root
+                entry[3] if len(entry) > 3 else None,  # pos
+                entry[4] if len(entry) > 4 else None,  # subpos
+                entry[5] if len(entry) > 5 else None,  # register
+                entry[6] if len(entry) > 6 else None,  # domain
+                entry[7] if len(entry) > 7 else None,  # freq_rank
+                "",                     # camel_lemmas
+                "",                     # camel_roots
+                "",                     # camel_pos_tags
+                None,                   # camel_confidence
+                None,                   # buckwalter_transliteration
+                None,                   # phonetic_transcription
+                None,                   # semantic_features
+                0,                      # phase2_enhanced
+                0                       # camel_analyzed
             ))
         
         conn.commit()
