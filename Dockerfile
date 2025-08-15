@@ -7,6 +7,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy requirements first for better Docker layer caching
+COPY requirements.txt /app/
+
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
