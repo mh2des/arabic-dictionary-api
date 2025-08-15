@@ -68,6 +68,27 @@ def get_db_connection() -> sqlite3.Connection:
     if os.path.exists('app'):
         print(f"Files in app directory: {os.listdir('app')}")
     
+    # PRIORITY 1: Check for emergency database first
+    try:
+        if os.path.exists("/app/emergency_db_path.txt"):
+            with open("/app/emergency_db_path.txt", "r") as f:
+                emergency_path = f.read().strip()
+            
+            if os.path.exists(emergency_path):
+                conn = sqlite3.connect(emergency_path)
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM entries")
+                count = cursor.fetchone()[0]
+                
+                if count > 100:  # Emergency database should have 1000 entries
+                    print(f"✅ USING EMERGENCY DATABASE: {count} entries from {emergency_path}")
+                    return conn
+                else:
+                    conn.close()
+                    print(f"Emergency database too small: {count} entries")
+    except Exception as e:
+        print(f"Emergency database check failed: {e}")
+    
     # Railway deployment paths - try new database name first
     possible_paths = [
         "/app/app/real_arabic_dict.db",                             # New REAL database
