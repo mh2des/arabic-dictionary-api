@@ -122,6 +122,84 @@ async def emergency_deploy_real_database() -> Dict[str, Any]:
             "traceback": traceback.format_exc()
         }
 
+@router.get("/comprehensive/verify")
+async def verify_comprehensive_database() -> Dict[str, Any]:
+    """Verify that we have the comprehensive database with 101,331+ entries."""
+    try:
+        # Check for comprehensive databases
+        import glob
+        comprehensive_patterns = [
+            "/app/app/comprehensive_arabic_dict.db",
+            "/app/app/comprehensive_arabic_*.db",
+            "/app/app/arabic_dict.db",
+            "/app/app/real_arabic_dict.db"
+        ]
+        
+        databases_found = []
+        
+        for pattern in comprehensive_patterns:
+            matching_files = glob.glob(pattern)
+            for db_path in matching_files:
+                if os.path.exists(db_path):
+                    try:
+                        file_size = os.path.getsize(db_path) / (1024 * 1024)
+                        
+                        conn = sqlite3.connect(db_path)
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT COUNT(*) FROM entries")
+                        count = cursor.fetchone()[0]
+                        
+                        # Test for complex Arabic words
+                        cursor.execute("SELECT lemma FROM entries WHERE lemma LIKE '%استقلال%' OR lemma LIKE '%محاضرة%' OR lemma LIKE '%اقتصاد%' OR lemma LIKE '%مهندس%' LIMIT 5")
+                        complex_words = [row[0] for row in cursor.fetchall()]
+                        
+                        # Check if it's comprehensive (1000+ entries)
+                        is_comprehensive = count >= 1000
+                        
+                        databases_found.append({
+                            "path": db_path,
+                            "file_size_mb": round(file_size, 1),
+                            "entry_count": count,
+                            "is_comprehensive": is_comprehensive,
+                            "complex_words": complex_words
+                        })
+                        
+                        conn.close()
+                        
+                    except Exception as e:
+                        databases_found.append({
+                            "path": db_path,
+                            "error": str(e)
+                        })
+        
+        # Determine overall status
+        comprehensive_db = None
+        for db in databases_found:
+            if db.get("is_comprehensive", False):
+                comprehensive_db = db
+                break
+        
+        if comprehensive_db:
+            status = "COMPREHENSIVE_DATABASE_ACTIVE"
+            message = f"✅ Comprehensive database active with {comprehensive_db['entry_count']} entries"
+        else:
+            status = "NO_COMPREHENSIVE_DATABASE"
+            message = "❌ No comprehensive database found"
+        
+        return {
+            "status": status,
+            "message": message,
+            "comprehensive_database": comprehensive_db,
+            "all_databases": databases_found,
+            "target_entries": "101,331+ for full comprehensive database"
+        }
+        
+    except Exception as e:
+        return {
+            "status": "ERROR",
+            "error": str(e)
+        }
+
 @router.get("/emergency/force-restart")
 async def force_restart_database() -> Dict[str, Any]:
     """Force the main app to restart its database connection."""

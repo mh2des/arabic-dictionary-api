@@ -28,6 +28,7 @@ EXPOSE $PORT
 
 # Create startup script that forces real database deployment
 RUN chmod +x /app/force_real_db.py
+RUN chmod +x /app/deploy_comprehensive_db.py
 
-# Use a startup command that ensures real database deployment
-CMD python3 /app/force_real_db.py && uvicorn app.main:app --host 0.0.0.0 --port 8000
+# Use a startup command that ensures comprehensive database deployment
+CMD python3 /app/deploy_comprehensive_db.py && uvicorn app.main:app --host 0.0.0.0 --port 8000

@@ -68,7 +68,37 @@ def get_db_connection() -> sqlite3.Connection:
     if os.path.exists('app'):
         print(f"Files in app directory: {os.listdir('app')}")
     
-    # PRIORITY 1: Check for emergency database first
+    # PRIORITY 1: Look for COMPREHENSIVE database (101,331+ entries)
+    comprehensive_paths = [
+        "/app/app/comprehensive_arabic_dict.db",           # Our target comprehensive DB
+        "/app/app/comprehensive_arabic_*.db",              # Timestamped comprehensive DBs
+    ]
+    
+    # Check for comprehensive databases first
+    import glob
+    for pattern in comprehensive_paths:
+        matching_files = glob.glob(pattern)
+        for db_path in matching_files:
+            if os.path.exists(db_path):
+                try:
+                    file_size = os.path.getsize(db_path) / (1024 * 1024)
+                    print(f"Found comprehensive database: {db_path} ({file_size:.1f} MB)")
+                    
+                    conn = sqlite3.connect(db_path)
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM entries")
+                    count = cursor.fetchone()[0]
+                    
+                    if count > 1000:  # Comprehensive database should have 1000+ entries
+                        print(f"✅ USING COMPREHENSIVE DATABASE: {count} entries")
+                        return conn
+                    else:
+                        conn.close()
+                        print(f"Database too small: {count} entries")
+                except Exception as e:
+                    print(f"Database at {db_path} failed: {e}")
+    
+    # PRIORITY 2: Check for emergency database
     try:
         # Check for force signal first
         if os.path.exists("/app/force_emergency_db.txt"):
@@ -104,7 +134,7 @@ def get_db_connection() -> sqlite3.Connection:
     except Exception as e:
         print(f"Emergency database check failed: {e}")
     
-    # Railway deployment paths - try new database name first
+    # PRIORITY 3: Railway deployment paths - try new database name first
     possible_paths = [
         "/app/app/real_arabic_dict.db",                             # New REAL database
         "/app/app/arabic_dict.db",                                  # Railway container path
