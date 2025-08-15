@@ -61,6 +61,13 @@ class BasicInfo(BaseModel):
 # Database connection helper
 def get_db_connection() -> sqlite3.Connection:
     """Get a connection to the enhanced SQLite database."""
+    
+    # Print debug info for Railway deployment
+    print(f"Current working directory: {os.getcwd()}")
+    print(f"Files in current directory: {os.listdir('.')}")
+    if os.path.exists('app'):
+        print(f"Files in app directory: {os.listdir('app')}")
+    
     # Railway deployment paths
     possible_paths = [
         "/app/app/arabic_dict.db",                                  # Railway container path
@@ -70,14 +77,29 @@ def get_db_connection() -> sqlite3.Connection:
     ]
     
     for db_path in possible_paths:
+        print(f"Checking path: {db_path}")
         if os.path.exists(db_path):
             try:
+                # Check file size to ensure it's the real database
+                file_size = os.path.getsize(db_path) / (1024 * 1024)  # MB
+                print(f"Found database at: {db_path} ({file_size:.1f} MB)")
+                
+                if file_size < 50:  # If less than 50MB, it's probably not our real database
+                    print(f"Database too small ({file_size:.1f} MB), skipping...")
+                    continue
+                
                 conn = sqlite3.connect(db_path)
                 # Test the connection
                 cursor = conn.cursor()
                 cursor.execute("SELECT COUNT(*) FROM entries LIMIT 1")
                 count = cursor.fetchone()[0]
                 print(f"Database connected: {db_path} with {count} entries")
+                
+                if count < 1000:  # If less than 1000 entries, it's probably fallback
+                    print(f"Database has too few entries ({count}), skipping...")
+                    conn.close()
+                    continue
+                    
                 return conn
             except Exception as e:
                 print(f"Database at {db_path} failed: {e}")
