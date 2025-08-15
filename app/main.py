@@ -458,13 +458,17 @@ def create_app() -> FastAPI:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Search in both root field and camel_roots JSON
+        # Handle both spaced and non-spaced root formats
+        # Convert "كتب" to "ك ت ب" for database search
+        spaced_root = ' '.join(list(root.strip()))
+        
+        # Search in both root field and camel_roots JSON with multiple formats
         cursor.execute("""
             SELECT lemma, root, pos FROM entries 
-            WHERE root = ? OR camel_roots LIKE ?
+            WHERE root = ? OR root = ? OR camel_roots LIKE ? OR camel_roots LIKE ?
             ORDER BY freq_rank ASC
             LIMIT 200
-        """, (root, f'%{root}%'))
+        """, (root, spaced_root, f'%{root}%', f'%{spaced_root}%'))
         
         rows = cursor.fetchall()
         conn.close()
