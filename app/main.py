@@ -101,8 +101,49 @@ def get_db_connection() -> sqlite3.Connection:
                 print(f"Database at {db_path} failed: {e}")
                 continue
     
-    # If no valid database found, try to download/create one
-    print("No valid database found, trying to restore full database...")
+    # If no valid database found, try to load our REAL database  
+    print("No valid database found, loading REAL comprehensive database...")
+    
+    try:
+        # Try to decompress and use our real database
+        import gzip
+        import shutil
+        
+        # Check for compressed database in multiple locations
+        compressed_paths = [
+            "/app/arabic_dict.db.gz",  # Railway root
+            os.path.join(os.path.dirname(__file__), "..", "arabic_dict.db.gz"),  # Parent dir
+            "arabic_dict.db.gz"  # Current dir
+        ]
+        
+        for compressed_path in compressed_paths:
+            if os.path.exists(compressed_path):
+                print(f"📦 Found compressed database: {compressed_path}")
+                
+                # Decompress to working location
+                target_path = "/app/app/arabic_dict.db"
+                os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                
+                with gzip.open(compressed_path, 'rb') as f_in:
+                    with open(target_path, 'wb') as f_out:
+                        shutil.copyfileobj(f_in, f_out)
+                
+                # Verify it's our real database
+                conn = sqlite3.connect(target_path)
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM entries")
+                count = cursor.fetchone()[0]
+                
+                if count > 50000:  # Our real database has 101,331 entries
+                    file_size = os.path.getsize(target_path) / (1024 * 1024)
+                    print(f"✅ Successfully loaded REAL database: {count} entries ({file_size:.1f} MB)")
+                    return conn
+                else:
+                    conn.close()
+                    print(f"❌ Database too small: {count} entries")
+                    
+    except Exception as e:
+        print(f"Failed to load compressed database: {e}")
     
     try:
         # First try to use the local full database if available
