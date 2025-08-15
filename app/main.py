@@ -124,14 +124,22 @@ def get_db_connection() -> sqlite3.Connection:
     
     # Final fallback - create simple but functional database  
     print("Creating simple functional database...")
-    fallback_path = "/tmp/simple_dict.db"
+    fallback_path = "/app/app/arabic_dict.db"  # Use the expected path
+    
+    # Remove existing file if it exists to avoid conflicts
+    if os.path.exists(fallback_path):
+        os.remove(fallback_path)
+    
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(fallback_path), exist_ok=True)
+    
     conn = sqlite3.connect(fallback_path)
     cursor = conn.cursor()
     
-    # Create minimal but complete schema
+    # Create simplified schema that matches our API
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS entries (
-            id INTEGER PRIMARY KEY,
+        CREATE TABLE entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             lemma TEXT NOT NULL,
             lemma_norm TEXT,
             root TEXT,
@@ -139,94 +147,55 @@ def get_db_connection() -> sqlite3.Connection:
             subpos TEXT,
             register TEXT,
             domain TEXT,
-            freq_rank INTEGER,
-            phase2_enhanced INTEGER DEFAULT 0,
-            camel_analyzed INTEGER DEFAULT 0,
-            camel_lemmas TEXT DEFAULT '[]',
-            camel_roots TEXT DEFAULT '[]',
-            camel_pos_tags TEXT DEFAULT '[]',
-            camel_confidence REAL DEFAULT 0.0,
-            buckwalter_transliteration TEXT,
-            phonetic_transcription TEXT DEFAULT '{}',
-            semantic_features TEXT DEFAULT '{}'
+            freq_rank INTEGER
         )
     ''')
     
-    # Simple but comprehensive test entries
+    # Simple but comprehensive test entries - no explicit IDs
     simple_entries = [
-        (1, "كَتَبَ", "كتب", "ك ت ب", "verb", "perfect", "فصحى", "education", 100),
-        (2, "كِتَابٌ", "كتاب", "ك ت ب", "noun", "common", "فصحى", "education", 50),
-        (3, "مَكْتَبٌ", "مكتب", "ك ت ب", "noun", "common", "فصحى", "workplace", 200),
-        (4, "مَكْتَبَةٌ", "مكتبة", "ك ت ب", "noun", "common", "فصحى", "education", 150),
-        (5, "كَاتِبٌ", "كاتب", "ك ت ب", "noun", "agent", "فصحى", "profession", 300),
-        (6, "قَرَأَ", "قرأ", "ق ر أ", "verb", "perfect", "فصحى", "education", 80),
-        (7, "قُرْآنٌ", "قرآن", "ق ر أ", "noun", "proper", "فصحى", "religion", 20),
-        (8, "قَارِئٌ", "قارئ", "ق ر أ", "noun", "agent", "فصحى", "education", 400),
-        (9, "قِرَاءَةٌ", "قراءة", "ق ر أ", "noun", "masdar", "فصحى", "education", 250),
-        (10, "دَرَسَ", "درس", "د ر س", "verb", "perfect", "فصحى", "education", 120),
-        (11, "دَرْسٌ", "درس", "د ر س", "noun", "masdar", "فصحى", "education", 90),
-        (12, "مَدْرَسَةٌ", "مدرسة", "د ر س", "noun", "place", "فصحى", "education", 60),
-        (13, "مُدَرِّسٌ", "مدرس", "د ر س", "noun", "agent", "فصحى", "profession", 180),
-        (14, "طَالِبٌ", "طالب", "ط ل ب", "noun", "agent", "فصحى", "education", 110),
-        (15, "عَلِمَ", "علم", "ع ل م", "verb", "perfect", "فصحى", "knowledge", 150),
-        (16, "عِلْمٌ", "علم", "ع ل م", "noun", "masdar", "فصحى", "knowledge", 70),
-        (17, "عَالِمٌ", "عالم", "ع ل م", "noun", "agent", "فصحى", "profession", 220),
-        (18, "مُعَلِّمٌ", "معلم", "ع ل م", "noun", "agent", "فصحى", "profession", 160),
-        (19, "بَيْتٌ", "بيت", "ب ي ت", "noun", "common", "فصحى", "home", 30),
-        (20, "مَاءٌ", "ماء", "م و ء", "noun", "common", "فصحى", "nature", 40),
+        ("كَتَبَ", "كتب", "ك ت ب", "verb", "perfect", "فصحى", "education", 100),
+        ("كِتَابٌ", "كتاب", "ك ت ب", "noun", "common", "فصحى", "education", 50),
+        ("مَكْتَبٌ", "مكتب", "ك ت ب", "noun", "common", "فصحى", "workplace", 200),
+        ("مَكْتَبَةٌ", "مكتبة", "ك ت ب", "noun", "common", "فصحى", "education", 150),
+        ("كَاتِبٌ", "كاتب", "ك ت ب", "noun", "agent", "فصحى", "profession", 300),
+        ("قَرَأَ", "قرأ", "ق ر أ", "verb", "perfect", "فصحى", "education", 80),
+        ("قُرْآنٌ", "قرآن", "ق ر أ", "noun", "proper", "فصحى", "religion", 20),
+        ("قَارِئٌ", "قارئ", "ق ر أ", "noun", "agent", "فصحى", "education", 400),
+        ("قِرَاءَةٌ", "قراءة", "ق ر أ", "noun", "masdar", "فصحى", "education", 250),
+        ("دَرَسَ", "درس", "د ر س", "verb", "perfect", "فصحى", "education", 120),
+        ("دَرْسٌ", "درس", "د ر س", "noun", "masdar", "فصحى", "education", 90),
+        ("مَدْرَسَةٌ", "مدرسة", "د ر س", "noun", "place", "فصحى", "education", 60),
+        ("مُدَرِّسٌ", "مدرس", "د ر س", "noun", "agent", "فصحى", "profession", 180),
+        ("طَالِبٌ", "طالب", "ط ل ب", "noun", "agent", "فصحى", "education", 110),
+        ("عَلِمَ", "علم", "ع ل م", "verb", "perfect", "فصحى", "knowledge", 150),
+        ("عِلْمٌ", "علم", "ع ل م", "noun", "masdar", "فصحى", "knowledge", 70),
+        ("عَالِمٌ", "عالم", "ع ل م", "noun", "agent", "فصحى", "profession", 220),
+        ("مُعَلِّمٌ", "معلم", "ع ل م", "noun", "agent", "فصحى", "profession", 160),
+        ("بَيْتٌ", "بيت", "ب ي ت", "noun", "common", "فصحى", "home", 30),
+        ("مَاءٌ", "ماء", "م و ء", "noun", "common", "فصحى", "nature", 40),
     ]
     
     cursor.executemany('''
         INSERT INTO entries 
-        (id, lemma, lemma_norm, root, pos, subpos, register, domain, freq_rank)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (lemma, lemma_norm, root, pos, subpos, register, domain, freq_rank)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', simple_entries)
     
     conn.commit()
-    print(f"Created simple database with {len(simple_entries)} entries")
+    
+    # Test the database
+    cursor.execute("SELECT COUNT(*) FROM entries")
+    count = cursor.fetchone()[0]
+    print(f"✅ Created simple database with {count} entries")
+    
+    # Test a sample query
+    cursor.execute("SELECT lemma, root, pos FROM entries LIMIT 3")
+    sample = cursor.fetchall()
+    print("📋 Sample entries:")
+    for row in sample:
+        print(f"  - {row[0]} ({row[1]}) - {row[2]}")
+    
     return conn
-    
-    # Create minimal schema
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS entries (
-            id INTEGER PRIMARY KEY,
-            lemma TEXT NOT NULL,
-            lemma_norm TEXT,
-            root TEXT,
-            pos TEXT,
-            subpos TEXT,
-            register TEXT,
-            domain TEXT,
-            freq_rank INTEGER,
-            phase2_enhanced INTEGER DEFAULT 0,
-            camel_analyzed INTEGER DEFAULT 0,
-            camel_lemmas TEXT,
-            camel_roots TEXT,
-            camel_pos_tags TEXT,
-            camel_confidence REAL,
-            buckwalter_transliteration TEXT,
-            phonetic_transcription TEXT,
-            semantic_features TEXT
-        )
-    ''')
-    
-    # Add a few test entries
-    test_entries = [
-        ("كتاب", "كتاب", "ك.ت.ب", "noun", "common", None, "education", 1),
-        ("مكتبة", "مكتبة", "ك.ت.ب", "noun", "common", None, "education", 2),
-        ("كتب", "كتب", "ك.ت.ب", "verb", "perfect", None, "education", 3)
-    ]
-    
-    cursor.executemany('''
-        INSERT OR IGNORE INTO entries 
-        (lemma, lemma_norm, root, pos, subpos, register, domain, freq_rank)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', test_entries)
-    
-    conn.commit()
-    print(f"Created fallback database with {len(test_entries)} entries")
-    return conn
-
 def row_to_enhanced_entry(row) -> EnhancedEntry:
     """Convert database row to EnhancedEntry model."""
     return EnhancedEntry(

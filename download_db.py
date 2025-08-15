@@ -23,11 +23,17 @@ def download_database() -> Optional[str]:
             count = cursor.fetchone()[0]
             conn.close()
             
-            if count > 10000:  # Valid database
+            if count > 5:  # Valid database with some entries
                 print(f"✅ Using existing database with {count} entries")
                 return db_path
-        except:
-            pass
+            else:
+                # Clear existing database if it has insufficient data
+                os.remove(db_path)
+                print("🗑️ Removed incomplete database")
+        except Exception as e:
+            print(f"⚠️ Database error: {e}, recreating...")
+            if os.path.exists(db_path):
+                os.remove(db_path)
     
     print("📥 Downloading Arabic dictionary database...")
     
