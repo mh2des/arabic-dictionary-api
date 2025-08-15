@@ -334,14 +334,22 @@ def create_app() -> FastAPI:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Fast prefix search with LIMIT for performance
+        norm_q = normalize_ar(q)
+        
+        # Fast prefix search with multiple patterns
         cursor.execute("""
             SELECT DISTINCT lemma 
             FROM entries 
-            WHERE lemma LIKE ? 
-            ORDER BY LENGTH(lemma), lemma 
+            WHERE lemma LIKE ? OR lemma_norm LIKE ? OR lemma LIKE ? OR lemma_norm LIKE ?
+            ORDER BY 
+                CASE 
+                    WHEN lemma LIKE ? THEN 1
+                    WHEN lemma_norm LIKE ? THEN 2
+                    ELSE 3
+                END,
+                LENGTH(lemma), lemma 
             LIMIT ?
-        """, (f"{q}%", limit))
+        """, (f"{q}%", f"{norm_q}%", f"%{q}%", f"%{norm_q}%", f"{q}%", f"{norm_q}%", limit))
         
         suggestions = [row[0] for row in cursor.fetchall()]
         conn.close()
@@ -479,11 +487,43 @@ def create_app() -> FastAPI:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        cursor.execute("""
-            SELECT lemma, root, pos FROM entries 
-            WHERE lemma LIKE ? OR lemma_norm LIKE ?
+        # Create multiple search patterns for better matching
+        patterns = [
+            q,                    # Original query
+            norm_q,              # Normalized query  
+            q.replace('ة', 'ه'),  # ة/ه variation
+            q.replace('ه', 'ة'),  # ه/ة variation
+        ]
+        
+        # Build query with multiple LIKE conditions
+        like_conditions = []
+        params = []
+        
+        for pattern in patterns:
+            like_conditions.append("lemma LIKE ?")
+            params.append(f"%{pattern}%")
+            like_conditions.append("lemma_norm LIKE ?") 
+            params.append(f"%{pattern}%")
+            like_conditions.append("root LIKE ?")
+            params.append(f"%{pattern}%")
+        
+        query = f"""
+            SELECT DISTINCT lemma, root, pos FROM entries 
+            WHERE {' OR '.join(like_conditions)}
+            ORDER BY 
+                CASE 
+                    WHEN lemma = ? THEN 1
+                    WHEN lemma_norm = ? THEN 2
+                    WHEN lemma LIKE ? THEN 3
+                    ELSE 4
+                END
             LIMIT 50
-        """, (f"%{q}%", f"%{norm_q}%"))
+        """
+        
+        # Add exact match parameters for ordering
+        params.extend([q, norm_q, f"{q}%"])
+        
+        cursor.execute(query, params)
         
         rows = cursor.fetchall()
         conn.close()
