@@ -14,6 +14,9 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import sys
+import gzip
+import shutil
 from functools import lru_cache
 from typing import List, Optional, Dict, Any
 
@@ -59,8 +62,134 @@ class BasicInfo(BaseModel):
     pos: Optional[str] = None
 
 # Database connection helper
+def deploy_comprehensive_database() -> Optional[str]:
+    """Deploy the COMPLETE comprehensive Arabic database with 101,331 entries on startup."""
+    
+    print("🚀 DEPLOYING COMPREHENSIVE ARABIC DATABASE (101,331 entries)")
+    print("=" * 70)
+    
+    # Create target directory
+    target_dir = "/app/app"
+    os.makedirs(target_dir, exist_ok=True)
+    
+    # Check if we already have the comprehensive database
+    comprehensive_path = "/app/app/comprehensive_arabic_dict.db"
+    if os.path.exists(comprehensive_path):
+        try:
+            conn = sqlite3.connect(comprehensive_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM entries")
+            count = cursor.fetchone()[0]
+            conn.close()
+            
+            if count > 100000:  # Should be 101,331
+                print(f"✅ Comprehensive database already exists: {count} entries")
+                return comprehensive_path
+            else:
+                print(f"❌ Existing database too small: {count} entries - recreating...")
+                os.remove(comprehensive_path)
+        except Exception as e:
+            print(f"❌ Error checking existing database: {e} - recreating...")
+            if os.path.exists(comprehensive_path):
+                os.remove(comprehensive_path)
+    
+    # Priority 1: Try to decompress our 18MB compressed comprehensive database
+    compressed_paths = [
+        "/app/arabic_dict.db.gz",  # Railway root
+        os.path.join(os.path.dirname(__file__), "..", "arabic_dict.db.gz"),  # Parent dir
+        "arabic_dict.db.gz"  # Current dir
+    ]
+    
+    for compressed_path in compressed_paths:
+        if os.path.exists(compressed_path):
+            print(f"📦 Found compressed comprehensive database: {compressed_path}")
+            
+            # Check compressed file size (should be ~18MB)
+            compressed_size = os.path.getsize(compressed_path) / (1024 * 1024)
+            print(f"📦 Compressed size: {compressed_size:.1f}MB")
+            
+            if compressed_size > 15:  # Our compressed DB is 18MB
+                try:
+                    print(f"📦 Decompressing to: {comprehensive_path}")
+                    with gzip.open(compressed_path, 'rb') as f_in:
+                        with open(comprehensive_path, 'wb') as f_out:
+                            shutil.copyfileobj(f_in, f_out)
+                    
+                    # Verify the decompressed database
+                    file_size = os.path.getsize(comprehensive_path) / (1024 * 1024)
+                    print(f"📊 Decompressed size: {file_size:.1f}MB")
+                    
+                    if file_size > 100:  # Should be ~172MB
+                        conn = sqlite3.connect(comprehensive_path)
+                        cursor = conn.cursor()
+                        
+                        # Check table structure
+                        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                        tables = cursor.fetchall()
+                        print(f"📋 Database tables: {[t[0] for t in tables]}")
+                        
+                        cursor.execute("SELECT COUNT(*) FROM entries")
+                        count = cursor.fetchone()[0]
+                        
+                        if count > 100000:  # Should be 101,331
+                            print(f"✅ SUCCESS! Comprehensive database deployed: {count} entries")
+                            
+                            # Test for complex Arabic words
+                            cursor.execute("SELECT lemma FROM entries WHERE LENGTH(lemma) > 5 LIMIT 5")
+                            test_words = cursor.fetchall()
+                            if test_words:
+                                print(f"✅ Sample complex words: {[w[0] for w in test_words]}")
+                            
+                            conn.close()
+                            
+                            # Create symlinks to expected paths
+                            symlink_paths = [
+                                "/app/app/arabic_dict.db",
+                                "/app/app/real_arabic_dict.db"
+                            ]
+                            
+                            for symlink_path in symlink_paths:
+                                try:
+                                    if os.path.exists(symlink_path):
+                                        os.remove(symlink_path)
+                                    os.symlink(comprehensive_path, symlink_path)
+                                    print(f"🔗 Created symlink: {os.path.basename(symlink_path)}")
+                                except Exception as symlink_error:
+                                    # If symlink fails, copy
+                                    try:
+                                        shutil.copy2(comprehensive_path, symlink_path)
+                                        print(f"📋 Copied to: {os.path.basename(symlink_path)}")
+                                    except Exception as copy_error:
+                                        print(f"⚠️ Could not create {symlink_path}: {copy_error}")
+                            
+                            print(f"🎉 COMPREHENSIVE DATABASE READY: {count} entries")
+                            return comprehensive_path
+                        else:
+                            conn.close()
+                            print(f"❌ Database too small after decompression: {count} entries")
+                    else:
+                        print(f"❌ Decompressed file too small: {file_size:.1f}MB")
+                        
+                except Exception as e:
+                    print(f"❌ Decompression failed: {e}")
+            else:
+                print(f"❌ Compressed file too small: {compressed_size:.1f}MB")
+    
+    print("❌ Could not deploy comprehensive database from compressed file")
+    return None
+
 def get_db_connection() -> sqlite3.Connection:
     """Get a connection to the enhanced SQLite database."""
+    
+    # DEPLOY COMPREHENSIVE DATABASE ON FIRST CALL
+    try:
+        deployed_path = deploy_comprehensive_database()
+        if deployed_path:
+            print(f"🎯 Using freshly deployed comprehensive database: {deployed_path}")
+            return sqlite3.connect(deployed_path)
+    except Exception as e:
+        print(f"⚠️ Comprehensive database deployment failed: {e}")
+        print("🔄 Falling back to existing database search...")
     
     # Print debug info for Railway deployment
     print(f"Current working directory: {os.getcwd()}")
