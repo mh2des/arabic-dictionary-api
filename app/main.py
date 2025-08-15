@@ -23,12 +23,8 @@ from pydantic import BaseModel
 
 from .services.normalize import normalize_ar
 
-# Import CAMeL Tools routes
-try:
-    from .api.camel_enhanced_routes import router as camel_router
-    CAMEL_AVAILABLE = True
-except ImportError:
-    CAMEL_AVAILABLE = False
+# CAMeL Tools routes are now integrated directly
+CAMEL_AVAILABLE = False
 
 # Enhanced response models for database integration
 class EnhancedEntry(BaseModel):
@@ -65,23 +61,31 @@ class BasicInfo(BaseModel):
 # Database connection helper
 def get_db_connection() -> sqlite3.Connection:
     """Get a connection to the enhanced SQLite database."""
-    # Try multiple possible paths for Railway deployment
+    # Railway deployment paths
     possible_paths = [
-        os.path.join(os.path.dirname(__file__), "arabic_dict.db"),  # app/arabic_dict.db
-        os.path.join(os.getcwd(), "app", "arabic_dict.db"),         # /app/app/arabic_dict.db
-        os.path.join(os.getcwd(), "arabic_dict.db"),                # /app/arabic_dict.db
+        "/app/app/arabic_dict.db",                                  # Railway container path
+        os.path.join(os.path.dirname(__file__), "arabic_dict.db"), # app/arabic_dict.db
+        os.path.join(os.getcwd(), "app", "arabic_dict.db"),         # ./app/arabic_dict.db
         "app/arabic_dict.db",                                       # relative path
-        "arabic_dict.db"                                            # current directory
     ]
     
     for db_path in possible_paths:
         if os.path.exists(db_path):
-            print(f"Found database at: {db_path}")
-            return sqlite3.connect(db_path)
+            try:
+                conn = sqlite3.connect(db_path)
+                # Test the connection
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM entries LIMIT 1")
+                count = cursor.fetchone()[0]
+                print(f"Database connected: {db_path} with {count} entries")
+                return conn
+            except Exception as e:
+                print(f"Database at {db_path} failed: {e}")
+                continue
     
     # If no database found, create a minimal one
-    print("No database found, creating minimal fallback...")
-    fallback_path = "fallback_dict.db"
+    print("Creating minimal fallback database...")
+    fallback_path = "/tmp/fallback_dict.db"
     conn = sqlite3.connect(fallback_path)
     cursor = conn.cursor()
     
@@ -588,10 +592,6 @@ def create_app() -> FastAPI:
         
         return row_to_enhanced_entry(row)
 
-    # Include CAMeL Tools routes if available
-    if CAMEL_AVAILABLE:
-        app.include_router(camel_router)
-    
     # Include enhanced dialect support routes
     try:
         from app.api.dialect_enhanced_routes import router as dialect_router
