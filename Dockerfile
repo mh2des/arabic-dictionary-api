@@ -24,8 +24,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir uvicorn
 
-# Expose port (default 8000)
+# Expose port (use Railway's $PORT environment variable)
 ENV PORT=8000
-EXPOSE 8000
+EXPOSE $PORT
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Use Railway's PORT environment variable
+CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT

@@ -117,78 +117,89 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Root route - Enhanced welcome message
+    # Root route - Enhanced welcome message (safe with error handling)
     @app.get("/", tags=["Welcome"])
     async def read_root() -> dict:
-        # Get live database stats
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT COUNT(*) FROM entries")
-        total = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM entries WHERE phase2_enhanced = 1")
-        phase2_enhanced = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM entries WHERE camel_analyzed = 1")
-        camel_enhanced = cursor.fetchone()[0]
-        
-        conn.close()
-        
-        return {
-            "message": "Enhanced Arabic Dictionary API - Production Ready!",
-            "version": "3.0.0",
-            "status": "production-ready",
-            "screens_supported": [1, 2, 4, 5, 6, 7],
-            "database_stats": {
-                "total_entries": total,
-                "camel_enhanced": camel_enhanced,
-                "phase2_enhanced": phase2_enhanced,
-                "enhancement_rate": f"{phase2_enhanced/total*100:.1f}%"
-            },
-            "features": [
-                "6 Screen APIs ready for mobile/web apps",
-                "SQLite database with 101,331+ entries",
-                "CAMeL Tools morphological analysis (77% coverage + live API)",
-                "Phonetic transcription (Buckwalter, IPA, Romanization)",
-                "Comprehensive semantic analysis",
-                "Root-based search with extensive results",
-                "Multi-dialect analysis foundation",
-                "Advanced linguistic features"
-            ],
-            "endpoints": {
-                "documentation": "/docs",
-                "interactive_docs": "/redoc",
-                "enhanced_search": "/search/enhanced",
-                "phonetics": "/phonetics/{word}",
-                "camel_analysis": "/camel/analyze/{word}",
-                "dialect_analysis": "/dialect/analyze/{word}",
-                "dialect_variants": "/dialect/variants/{word}",
-                "root_search_enhanced": "/dialect/search/root/{root}",
-                "dialect_coverage": "/dialect/coverage/stats",
-                "stats": "/stats/comprehensive"
-            },
-            "status": "Enhanced Database Integration - Fully Operational!"
-        }
+        try:
+            # Get live database stats safely
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT COUNT(*) FROM entries")
+            total = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM entries WHERE phase2_enhanced = 1")
+            phase2_enhanced = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM entries WHERE camel_analyzed = 1")
+            camel_enhanced = cursor.fetchone()[0]
+            
+            conn.close()
+            
+            return {
+                "message": "Enhanced Arabic Dictionary API - Production Ready!",
+                "version": "3.0.0",
+                "status": "production-ready",
+                "screens_supported": [1, 2, 4, 5, 6, 7],
+                "database_stats": {
+                    "total_entries": total,
+                    "camel_enhanced": camel_enhanced,
+                    "phase2_enhanced": phase2_enhanced,
+                    "enhancement_rate": f"{phase2_enhanced/total*100:.1f}%"
+                },
+                "features": [
+                    "6 Screen APIs ready for mobile/web apps",
+                    "SQLite database with comprehensive entries",
+                    "CAMeL Tools morphological analysis",
+                    "Phonetic transcription (Buckwalter, IPA, Romanization)",
+                    "Comprehensive semantic analysis",
+                    "Root-based search with extensive results",
+                    "Multi-dialect analysis foundation",
+                    "Advanced linguistic features"
+                ],
+                "endpoints": {
+                    "documentation": "/docs",
+                    "interactive_docs": "/redoc",
+                    "health_check": "/health",
+                    "detailed_health": "/healthz",
+                    "flutter_suggest": "/api/suggest",
+                    "flutter_search": "/api/search/fast"
+                },
+                "deployment": "Railway Platform - Live and Operational!"
+            }
+        except Exception as e:
+            # Fallback response if database fails
+            return {
+                "message": "Arabic Dictionary API - Starting Up",
+                "version": "3.0.0", 
+                "status": "initializing",
+                "error": f"Database initialization: {str(e)}",
+                "endpoints": {
+                    "health_check": "/health",
+                    "documentation": "/docs"
+                },
+                "note": "Service is starting, some features may be limited initially"
+            }
 
-    # Health check for Railway deployment (simple, no DB dependency)
+    # Health check for Railway deployment (ultra-simple, no dependencies)
     @app.get("/health", tags=["Utility"])
-    async def health() -> dict[str, str]:
-        """Simple health check for Railway deployment."""
-        return {"status": "ok", "service": "arabic-dictionary-api"}
+    async def health() -> dict:
+        """Ultra-simple health check for Railway deployment."""
+        return {"status": "healthy", "service": "arabic-dictionary-api"}
 
-    # Detailed health check with database
+    # Detailed health check with database (safe with try/catch)
     @app.get("/healthz", tags=["Utility"])
-    async def healthz() -> dict[str, str]:
-        # Quick database connectivity check
+    async def healthz() -> dict:
+        """Detailed health check with database connectivity."""
         try:
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM entries LIMIT 1")
+            count = cursor.fetchone()[0]
             conn.close()
-            return {"status": "ok", "database": "connected"}
+            return {"status": "healthy", "database": "connected", "entries": count}
         except Exception as e:
-            return {"status": "error", "database": f"connection failed: {str(e)}"}
+            return {"status": "degraded", "database": f"error: {str(e)}", "note": "using fallback"}
 
     @app.get("/api/suggest", tags=["Flutter Integration"])
     async def suggest_words(q: str = Query(..., min_length=1), limit: int = Query(10, le=50)):
