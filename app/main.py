@@ -70,6 +70,21 @@ def get_db_connection() -> sqlite3.Connection:
     
     # PRIORITY 1: Check for emergency database first
     try:
+        # Check for force signal first
+        if os.path.exists("/app/force_emergency_db.txt"):
+            with open("/app/force_emergency_db.txt", "r") as f:
+                emergency_path = f.read().strip()
+            
+            if os.path.exists(emergency_path):
+                conn = sqlite3.connect(emergency_path)
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM entries")
+                count = cursor.fetchone()[0]
+                
+                print(f"🚨 FORCED EMERGENCY DATABASE: {count} entries from {emergency_path}")
+                return conn
+        
+        # Check regular emergency database
         if os.path.exists("/app/emergency_db_path.txt"):
             with open("/app/emergency_db_path.txt", "r") as f:
                 emergency_path = f.read().strip()

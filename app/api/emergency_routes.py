@@ -122,6 +122,45 @@ async def emergency_deploy_real_database() -> Dict[str, Any]:
             "traceback": traceback.format_exc()
         }
 
+@router.get("/emergency/force-restart")
+async def force_restart_database() -> Dict[str, Any]:
+    """Force the main app to restart its database connection."""
+    try:
+        # Check if emergency database exists
+        if not os.path.exists("/app/emergency_db_path.txt"):
+            return {"status": "NO_EMERGENCY_DB", "message": "No emergency database deployed yet"}
+        
+        with open("/app/emergency_db_path.txt", "r") as f:
+            emergency_path = f.read().strip()
+        
+        if not os.path.exists(emergency_path):
+            return {"status": "DB_NOT_FOUND", "path": emergency_path}
+        
+        # Test the emergency database
+        conn = sqlite3.connect(emergency_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM entries")
+        count = cursor.fetchone()[0]
+        conn.close()
+        
+        # Create a signal file to force main app to use emergency database
+        with open("/app/force_emergency_db.txt", "w") as f:
+            f.write(emergency_path)
+        
+        return {
+            "status": "SUCCESS",
+            "message": "Emergency database activated",
+            "emergency_db_path": emergency_path,
+            "entries_count": count,
+            "action": "Main app will use emergency database on next request"
+        }
+        
+    except Exception as e:
+        return {
+            "status": "ERROR",
+            "error": str(e)
+        }
+
 @router.get("/emergency/test-real-db")
 async def test_emergency_database() -> Dict[str, Any]:
     """Test the emergency database for complex Arabic words."""
