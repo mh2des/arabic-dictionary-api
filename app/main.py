@@ -17,6 +17,7 @@ import sqlite3
 import sys
 import gzip
 import shutil
+import time
 from functools import lru_cache
 from typing import List, Optional, Dict, Any
 
@@ -178,14 +179,141 @@ def deploy_comprehensive_database() -> Optional[str]:
     print("❌ Could not deploy comprehensive database from compressed file")
     return None
 
-def get_db_connection() -> sqlite3.Connection:
-    """Get a connection to the enhanced SQLite database."""
+def nuclear_deploy_comprehensive_database() -> Optional[str]:
+    """☢️  NUCLEAR FORCE: Deploy comprehensive database with atomic operations."""
     
-    # DEPLOY COMPREHENSIVE DATABASE ON FIRST CALL
+    print("☢️  NUCLEAR DEPLOYMENT INITIATED")
+    print("🎯 Destroying all cached databases and forcing fresh deployment")
+    
+    # Step 1: Nuclear cache destruction
+    cache_paths = [
+        "/app/app/arabic_dict.db",
+        "/app/app/real_arabic_dict.db", 
+        "/app/app/comprehensive_arabic_dict.db"
+    ]
+    
+    for cache_path in cache_paths:
+        if os.path.exists(cache_path):
+            try:
+                os.remove(cache_path)
+                print(f"💥 DESTROYED: {os.path.basename(cache_path)}")
+            except Exception as e:
+                print(f"⚠️  Could not destroy {cache_path}: {e}")
+    
+    # Step 2: Create nuclear database with unique timestamp
+    import hashlib
+    timestamp = int(time.time())
+    unique_id = hashlib.md5(str(timestamp).encode()).hexdigest()[:8]
+    nuclear_db_name = f"nuclear_arabic_{timestamp}_{unique_id}.db"
+    
+    # Step 3: Nuclear decompression
+    compressed_paths = [
+        "/app/arabic_dict.db.gz",
+        os.path.join(os.path.dirname(__file__), "..", "arabic_dict.db.gz"),
+        "arabic_dict.db.gz"
+    ]
+    
+    for compressed_path in compressed_paths:
+        if os.path.exists(compressed_path):
+            compressed_size = os.path.getsize(compressed_path) / (1024 * 1024)
+            print(f"☢️  Nuclear source: {compressed_path} ({compressed_size:.1f}MB)")
+            
+            if compressed_size > 15:  # 18MB compressed
+                os.makedirs("/app/app", exist_ok=True)
+                nuclear_db_path = f"/app/app/{nuclear_db_name}"
+                
+                print(f"⚛️  Nuclear decompression: {nuclear_db_path}")
+                
+                try:
+                    with gzip.open(compressed_path, 'rb') as f_in:
+                        with open(nuclear_db_path, 'wb') as f_out:
+                            shutil.copyfileobj(f_in, f_out)
+                    
+                    file_size = os.path.getsize(nuclear_db_path) / (1024 * 1024)
+                    print(f"⚛️  Nuclear size: {file_size:.1f}MB")
+                    
+                    if file_size > 100:  # 172MB uncompressed
+                        conn = sqlite3.connect(nuclear_db_path)
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT COUNT(*) FROM entries")
+                        count = cursor.fetchone()[0]
+                        
+                        if count > 100000:  # 101,331 entries
+                            print(f"☢️  NUCLEAR SUCCESS: {count} entries")
+                            conn.close()
+                            
+                            # Create atomic symlinks
+                            symlink_targets = [
+                                "/app/app/arabic_dict.db",
+                                "/app/app/real_arabic_dict.db",
+                                "/app/app/comprehensive_arabic_dict.db"
+                            ]
+                            
+                            for target in symlink_targets:
+                                try:
+                                    if os.path.exists(target):
+                                        os.remove(target)
+                                    os.symlink(nuclear_db_path, target)
+                                    print(f"⚛️  Nuclear symlink: {os.path.basename(target)}")
+                                except:
+                                    shutil.copy2(nuclear_db_path, target)
+                                    print(f"⚛️  Nuclear copy: {os.path.basename(target)}")
+                            
+                            # Create nuclear signal
+                            nuclear_signal_path = "/app/nuclear_database_deployed.txt"
+                            with open(nuclear_signal_path, "w") as f:
+                                f.write(f"{nuclear_db_path}\n{count}\n{timestamp}\n{unique_id}")
+                            
+                            print(f"☢️  NUCLEAR SIGNAL ACTIVE: {count} entries")
+                            return nuclear_db_path
+                        else:
+                            conn.close()
+                            print(f"❌ Nuclear database too small: {count} entries")
+                    else:
+                        print(f"❌ Nuclear decompressed too small: {file_size:.1f}MB")
+                except Exception as e:
+                    print(f"❌ Nuclear decompression failed: {e}")
+    
+    print("💀 NUCLEAR DEPLOYMENT FAILED")
+    return None
+
+def get_db_connection() -> sqlite3.Connection:
+    """Get a connection to the enhanced SQLite database - NUCLEAR FORCE VERSION."""
+    
+    # ☢️  NUCLEAR FORCE: Check for nuclear deployment signal first
+    nuclear_signal_path = "/app/nuclear_database_deployed.txt"
+    if os.path.exists(nuclear_signal_path):
+        try:
+            with open(nuclear_signal_path, "r") as f:
+                lines = f.read().strip().split("\n")
+                if len(lines) >= 4:
+                    nuclear_db_path, count, timestamp, unique_id = lines[:4]
+                    
+                    if os.path.exists(nuclear_db_path):
+                        print(f"☢️  NUCLEAR DATABASE DETECTED: {nuclear_db_path}")
+                        print(f"☢️  Nuclear entries: {count}")
+                        print(f"☢️  Nuclear timestamp: {timestamp}")
+                        
+                        # Verify nuclear database is still valid
+                        conn = sqlite3.connect(nuclear_db_path)
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT COUNT(*) FROM entries")
+                        actual_count = cursor.fetchone()[0]
+                        
+                        if actual_count > 100000:
+                            print(f"☢️  NUCLEAR DATABASE ACTIVE: {actual_count} entries")
+                            return conn
+                        else:
+                            conn.close()
+                            print(f"⚠️  Nuclear database corrupted: {actual_count} entries")
+        except Exception as e:
+            print(f"⚠️  Nuclear signal check failed: {e}")
+    
+    # 🔥 NUCLEAR DEPLOYMENT: Force deploy comprehensive database
     try:
-        deployed_path = deploy_comprehensive_database()
+        deployed_path = nuclear_deploy_comprehensive_database()
         if deployed_path:
-            print(f"🎯 Using freshly deployed comprehensive database: {deployed_path}")
+            print(f"☢️  NUCLEAR DEPLOYMENT SUCCESS: {deployed_path}")
             return sqlite3.connect(deployed_path)
     except Exception as e:
         print(f"⚠️ Comprehensive database deployment failed: {e}")
