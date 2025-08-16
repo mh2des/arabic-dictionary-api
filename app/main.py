@@ -11,14 +11,19 @@ import sqlite3
 import gzip
 import shutil
 import time
+import sys
+import os
 from functools import lru_cache
 from typing import List, Optional, Dict, Any
+
+# Add current directory to path for imports
+sys.path.append(os.path.dirname(__file__))
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from .services.normalize import normalize_ar
+from services.normalize import normalize_ar
 
 # Response models
 class EnhancedEntry(BaseModel):
@@ -1095,10 +1100,27 @@ async def test_all_screens():
 
 # Include dialect support routes
 try:
-    from .api.dialect_enhanced_routes import router as dialect_router
+    from api.dialect_enhanced_routes import router as dialect_router
     app.include_router(dialect_router)
-except ImportError:
-    print("⚠️  Dialect routes not available - continuing without dialect endpoints")
+    print("✅ Enhanced dialect routes loaded")
+except ImportError as e:
+    print(f"⚠️  Enhanced dialect routes not available: {e}")
+
+# Include comprehensive dialect translation routes
+try:
+    from api.comprehensive_dialect_routes import router as comprehensive_dialect_router
+    app.include_router(comprehensive_dialect_router)
+    print("✅ Comprehensive dialect translation routes loaded")
+except ImportError as e:
+    print(f"⚠️  Comprehensive dialect translation routes not available: {e}")
+
+# Include dialect translation routes
+try:
+    from api.dialect_translation_routes import router as translation_router
+    app.include_router(translation_router)
+    print("✅ Dialect translation endpoints loaded")
+except ImportError as e:
+    print(f"⚠️  Dialect translation routes not available: {e}")
 
 if __name__ == "__main__":
     import uvicorn
