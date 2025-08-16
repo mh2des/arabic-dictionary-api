@@ -114,85 +114,114 @@ async def analyze_word_dialect(word: str) -> Dict[str, Any]:
     
     This endpoint provides complete morphological analysis with both
     stored and live CAMeL analysis for maximum dialect support.
+    Works with or without CAMeL Tools installed.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    # First, try to get stored analysis
-    cursor.execute("""
-        SELECT lemma, camel_lemmas, camel_roots, camel_pos_tags, camel_confidence,
-               buckwalter_transliteration, phonetic_transcription
-        FROM entries 
-        WHERE lemma = ? OR lemma_norm = ?
-        LIMIT 1
-    """, (word, word))
+    # Create word variations to handle different spellings
+    word_variations = [
+        word,
+        word.replace('ا', 'أ'),  # ا -> أ
+        word.replace('أ', 'ا'),  # أ -> ا  
+        word.replace('ى', 'ي'),  # ى -> ي
+        word.replace('ي', 'ى'),  # ي -> ى
+        word.replace('ة', 'ه'),  # ة -> ه
+        word.replace('ه', 'ة'),  # ه -> ة
+    ]
     
-    stored_result = cursor.fetchone()
-    conn.close()
+    # Remove duplicates
+    word_variations = list(set(word_variations))
+    
+    # Try to find word in database with variations
+    stored_result = None
+    matched_word = None
+    
+    for variant in word_variations:
+        cursor.execute("""
+            SELECT lemma, lemma_norm, root, pos, camel_lemmas, camel_roots, camel_pos_tags, camel_confidence,
+                   buckwalter_transliteration, phonetic_transcription, register
+            FROM entries 
+            WHERE lemma = ? OR lemma_norm = ?
+            LIMIT 1
+        """, (variant, variant))
+        
+        stored_result = cursor.fetchone()
+        if stored_result:
+            matched_word = variant
+            break
     
     result = {
-        'query_word': word,
+        'word': word,
+        'normalized': normalize_arabic_text(word),
+        'matched_variant': matched_word,
         'found_in_database': bool(stored_result),
-        'stored_analysis': {},
-        'live_analysis': {},
-        'combined_analysis': {},
-        'dialect_features': {}
+        'analysis': {},
+        'dialect_info': {},
+        'camel_available': CAMEL_AVAILABLE
     }
     
     # Add stored analysis if available
     if stored_result:
-        lemma, camel_lemmas, camel_roots, camel_pos_tags, camel_confidence, buckwalter, phonetic = stored_result
+        lemma, lemma_norm, root, pos, camel_lemmas, camel_roots, camel_pos_tags, camel_confidence, buckwalter, phonetic, register = stored_result
         
         stored_lemmas = json.loads(camel_lemmas) if camel_lemmas else []
         stored_roots = json.loads(camel_roots) if camel_roots else []
         stored_pos = json.loads(camel_pos_tags) if camel_pos_tags else []
         
-        result['stored_analysis'] = {
+        result['analysis'] = {
             'lemma': lemma,
-            'lemmas': stored_lemmas,
-            'roots': stored_roots,
-            'pos_tags': stored_pos,
-            'confidence': camel_confidence or 0.0,
+            'lemma_norm': lemma_norm,
+            'root': root,
+            'pos': pos,
+            'lemmas': stored_lemmas if stored_lemmas else [lemma],
+            'roots': stored_roots if stored_roots else ([root] if root else []),
+            'pos_tags': stored_pos if stored_pos else ([pos] if pos and pos != 'unknown' else []),
+            'confidence': camel_confidence or 0.7,
             'buckwalter': buckwalter,
-            'phonetic_data': json.loads(phonetic) if phonetic else {}
+            'phonetic_data': json.loads(phonetic) if phonetic else {},
+            'live_analysis': False
+        }
+        
+        result['dialect_info'] = {
+            'register': register or 'unknown',
+            'variants': word_variations,
+            'matched_form': matched_word
         }
     
-    # Always perform live analysis for maximum coverage
-    live_analysis = analyze_word_live(word)
-    result['live_analysis'] = live_analysis
+    # Perform live analysis if CAMeL Tools available
+    if CAMEL_AVAILABLE:
+        live_analysis = analyze_word_live(word)
+        if live_analysis['live_analysis']:
+            result['analysis'].update({
+                'camel_lemmas': live_analysis['lemmas'],
+                'camel_roots': live_analysis['roots'],
+                'camel_pos_tags': live_analysis['pos_tags'],
+                'camel_confidence': live_analysis['confidence'],
+                'camel_analyses': live_analysis['analyses'],
+                'live_analysis': True
+            })
+    else:
+        # Provide basic analysis without CAMeL Tools
+        if not stored_result:
+            result['analysis'] = {
+                'lemma': word,
+                'lemmas': [word],
+                'roots': [],
+                'pos_tags': [],
+                'confidence': 0.0,
+                'live_analysis': False,
+                'status': 'not_found_and_no_camel_tools'
+            }
+            result['dialect_info'] = {
+                'register': 'unknown',
+                'variants': word_variations,
+                'matched_form': None,
+                'note': 'Install CAMeL Tools for live morphological analysis'
+            }
     
-    # Combine analyses for comprehensive results
-    all_lemmas = set()
-    all_roots = set()
-    all_pos = set()
-    
-    if stored_result:
-        all_lemmas.update(result['stored_analysis']['lemmas'])
-        all_roots.update(result['stored_analysis']['roots'])
-        all_pos.update(result['stored_analysis']['pos_tags'])
-    
-    all_lemmas.update(live_analysis['lemmas'])
-    all_roots.update(live_analysis['roots'])
-    all_pos.update(live_analysis['pos_tags'])
-    
-    result['combined_analysis'] = {
-        'all_lemmas': list(all_lemmas),
-        'all_roots': list(all_roots),
-        'all_pos_tags': list(all_pos),
-        'total_variants': len(all_lemmas),
-        'morphological_richness': len(all_roots) + len(all_pos)
-    }
-    
-    # Add dialect-specific features
-    result['dialect_features'] = {
-        'has_variants': len(all_lemmas) > 1,
-        'morphologically_complex': len(all_roots) > 1,
-        'multiple_pos': len(all_pos) > 1,
-        'analysis_confidence': max(
-            result['stored_analysis'].get('confidence', 0.0),
-            live_analysis.get('confidence', 0.0)
-        )
-    }
+    conn.close()
+    return result
     
     return result
 
@@ -277,11 +306,25 @@ async def get_dialect_variants(word: str) -> Dict[str, Any]:
     conn = get_db_connection()
     cursor = conn.cursor()
     
-    all_lemmas = analysis['combined_analysis']['all_lemmas']
-    all_roots = analysis['combined_analysis']['all_roots']
+    # Extract analysis data
+    analysis_data = analysis.get('analysis', {})
+    all_lemmas = analysis_data.get('lemmas', [])
+    all_roots = analysis_data.get('roots', [])
+    
+    # Also check camel analysis if available
+    if 'camel_lemmas' in analysis_data:
+        all_lemmas.extend(analysis_data['camel_lemmas'])
+    if 'camel_roots' in analysis_data:
+        all_roots.extend(analysis_data['camel_roots'])
+    
+    # Remove duplicates
+    all_lemmas = list(set(all_lemmas))
+    all_roots = list(set(all_roots))
     
     variants = {
         'query_word': word,
+        'matched_form': analysis.get('matched_variant'),
+        'found_in_database': analysis.get('found_in_database', False),
         'root_variants': [],
         'lemma_variants': [],
         'related_words': [],
@@ -291,13 +334,14 @@ async def get_dialect_variants(word: str) -> Dict[str, Any]:
     # Find words sharing the same roots
     if all_roots:
         for root in all_roots:
-            cursor.execute("""
-                SELECT DISTINCT lemma, pos, freq_rank
-                FROM entries 
-                WHERE root = ? OR camel_roots LIKE ?
-                ORDER BY freq_rank ASC
-                LIMIT 20
-            """, (root, f'%{root}%'))
+            if root:  # Make sure root is not empty
+                cursor.execute("""
+                    SELECT DISTINCT lemma, pos, freq_rank
+                    FROM entries 
+                    WHERE root = ? OR camel_roots LIKE ?
+                    ORDER BY freq_rank ASC
+                    LIMIT 20
+                """, (root, f'%{root}%'))
             
             root_words = cursor.fetchall()
             for lemma, pos, freq_rank in root_words:
