@@ -292,6 +292,198 @@ async def search_fast(q: str = Query(..., description="Arabic search query"),
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search error: {str(e)}")
 
+# Additional comprehensive endpoints for complete API
+@app.get("/search")
+async def legacy_search(q: str = Query(None, description="Search query")):
+    """Legacy search endpoint for compatibility."""
+    if not q:
+        return {"message": "Please provide a search query", "endpoints": ["/api/search/fast", "/api/suggest"]}
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT lemma, pos, root FROM entries WHERE lemma LIKE ? LIMIT 20", (f"%{q}%",))
+        results = []
+        for row in cursor.fetchall():
+            results.append({
+                "lemma": row[0],
+                "root": row[2],
+                "pos": row[1]
+            })
+        
+        conn.close()
+        return results
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/search/enhanced")
+async def enhanced_search(
+    q: str = Query(..., description="Search query"),
+    limit: int = Query(50, description="Maximum results"),
+    include_phonetics: bool = Query(True, description="Include phonetic data")
+):
+    """Enhanced search with comprehensive data."""
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Check available columns
+        cursor.execute("PRAGMA table_info(entries)")
+        columns = [col[1] for col in cursor.fetchall()]
+        
+        # Build query based on available columns
+        base_cols = ["lemma", "pos", "root"]
+        if "definition" in columns:
+            base_cols.append("definition")
+        if "freq_rank" in columns:
+            base_cols.append("freq_rank")
+        
+        select_clause = ", ".join(base_cols)
+        
+        cursor.execute(f"""
+            SELECT {select_clause}
+            FROM entries 
+            WHERE lemma LIKE ? OR lemma LIKE ?
+            ORDER BY LENGTH(lemma), lemma
+            LIMIT ?
+        """, (f"{q}%", f"%{q}%", limit))
+        
+        results = []
+        for row in cursor.fetchall():
+            result = {}
+            for i, col in enumerate(base_cols):
+                result[col] = row[i] if i < len(row) else ""
+            results.append(result)
+        
+        conn.close()
+        
+        return {
+            "query": q,
+            "results": results,
+            "total_found": len(results),
+            "search_features": {
+                "phonetics_included": include_phonetics,
+                "database_powered": True
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/lookup/{word}")
+async def lookup_word(word: str):
+    """Direct word lookup by lemma."""
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT lemma, pos, root FROM entries WHERE lemma = ? OR lemma LIKE ?", 
+                      (word, f"%{word}%"))
+        
+        results = []
+        for row in cursor.fetchall():
+            results.append({
+                "lemma": row[0],
+                "pos": row[1], 
+                "root": row[2]
+            })
+        
+        conn.close()
+        
+        if not results:
+            raise HTTPException(status_code=404, detail="Word not found")
+            
+        return {"word": word, "entries": results}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/stats")
+async def get_stats():
+    """API statistics and database information."""
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Get total entries
+        cursor.execute("SELECT COUNT(*) FROM entries")
+        total_entries = cursor.fetchone()[0]
+        
+        # Get sample entries
+        cursor.execute("SELECT lemma FROM entries WHERE LENGTH(lemma) > 4 LIMIT 10")
+        sample_words = [row[0] for row in cursor.fetchall()]
+        
+        # Check available columns for features
+        cursor.execute("PRAGMA table_info(entries)")
+        columns = [col[1] for col in cursor.fetchall()]
+        
+        conn.close()
+        
+        return {
+            "database_stats": {
+                "total_entries": total_entries,
+                "sample_words": sample_words,
+                "available_columns": columns
+            },
+            "api_info": {
+                "version": "2.0.0",
+                "platform": "Render.com",
+                "comprehensive": total_entries > 100000
+            },
+            "endpoints": {
+                "suggest": "/api/suggest",
+                "search": "/api/search/fast", 
+                "enhanced_search": "/search/enhanced",
+                "lookup": "/lookup/{word}",
+                "legacy_search": "/search"
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/roots/{root}")
+async def search_by_root(root: str, limit: int = Query(20, le=100)):
+    """Search words by Arabic root."""
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT lemma, pos, root 
+            FROM entries 
+            WHERE root = ? OR root LIKE ?
+            ORDER BY LENGTH(lemma), lemma
+            LIMIT ?
+        """, (root, f"%{root}%", limit))
+        
+        results = []
+        for row in cursor.fetchall():
+            results.append({
+                "lemma": row[0],
+                "pos": row[1],
+                "root": row[2]
+            })
+        
+        conn.close()
+        
+        return {
+            "root": root,
+            "words": results,
+            "count": len(results)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
