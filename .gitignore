@@ -48,11 +48,11 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 
-# Database files (keep main dict.db but ignore temp files)
+# Database files (too large for GitHub - use external storage)
+*.db
 *.db-shm
 *.db-wal
 dict_*.db
-!dict.db
 
 # Logs
 *.log
